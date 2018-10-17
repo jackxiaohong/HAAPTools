@@ -194,22 +194,20 @@ class HAAPConn(object):
             return None
             print("------Goto CLI Failed For Engine: " + self._host)
 
-    def ExecuteCommand(self, *lstCommand):
+    def ExecuteCommand(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")
         CLI_Conflict = self._strCLIConflict.encode(encoding="utf-8")
-        if isinstance(lstCommand, str):
-            lstCommand = lstCommand.split('!@#$%^&*')
 
         def GetResult():
-            strCommandResult = ''
-            for strCommand in lstCommand:
-                self._Connection.write(
-                    strCommand.encode(encoding="utf-8") + b'\r')
-                strResult = str(self._Connection.read_until(
-                    CLI, timeout=2).decode())
-                strCommandResult += strResult
-            return strCommandResult
+            self._Connection.write(
+                strCommand.encode(encoding="utf-8") + b'\r')
+            strResult = str(self._Connection.read_until(
+                CLI, timeout=3).decode())
+            if self._strCLIPrompt in strResult:
+                return strResult
+            else:
+                return None
 
         def FindCLI():
             self._Connection.write('\r')

@@ -39,3 +39,6 @@ print(reUpTimeList.match(strUpTime[0]).groups())
 aa = re.compile(r'.*((\d{3}.)(\d{3}.)(\d{3}.))')
 print(aa.match(vpd).groups())
 
+
+
+
