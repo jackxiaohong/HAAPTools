@@ -120,7 +120,6 @@ class SSHConn(object):
         self._sftp.put(localpath, remotepath)
 
     def ExecuteCommand(self, command):
-
         def GetRusult():
             stdin, stdout, stderr = self._client.exec_command(command)
             data = stdout.read()
@@ -194,22 +193,20 @@ class HAAPConn(object):
             return None
             print("------Goto CLI Failed For Engine: " + self._host)
 
-    def ExecuteCommand(self, *lstCommand):
+    def ExecuteCommand(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")
         CLI_Conflict = self._strCLIConflict.encode(encoding="utf-8")
-        if isinstance(lstCommand, str):
-            lstCommand = lstCommand.split('!@#$%^&*')
 
         def GetResult():
-            strCommandResult = ''
-            for strCommand in lstCommand:
-                self._Connection.write(
-                    strCommand.encode(encoding="utf-8") + b'\r')
-                strResult = str(self._Connection.read_until(
-                    CLI, timeout=2).decode())
-                strCommandResult += strResult
-            return strCommandResult
+            self._Connection.write(
+                strCommand.encode(encoding="utf-8") + b'\r')
+            strResult = str(self._Connection.read_until(
+                CLI, timeout=3).decode())
+            if self._strCLIPrompt in strResult:
+                return strResult
+            else:
+                return None
 
         def FindCLI():
             self._Connection.write('\r')
@@ -235,7 +232,7 @@ class HAAPConn(object):
             if self._Connection:
                 return FindCLI()
             else:
-                print('Connet Faild...')
+                print('Connect Faild...')
 
     def Close(self):
         if self._Connection:
@@ -243,16 +240,28 @@ class HAAPConn(object):
 
 
 if __name__ == '__main__':
-    aa = HAAPConn('172.16.254.71', 23, '.com')
+    # aa = HAAPConn('172.16.254.71', 23, '.com')
     # print(aa._Connection)
-    print(aa.ExecuteCommand('conmgr status'))
-    print(1)
-    time.sleep(3)
-    print(aa.ExecuteCommand('conmgr status'))
-    print(2)
-    time.sleep(3)
-    print(aa.ExecuteCommand('conmgr status'))
-    print(3)
-    time.sleep(3)
-    print(aa.ExecuteCommand('conmgr status'))
-    print(4)
+    # print(aa.ExecuteCommand('conmgr status'))
+    # print(1)
+    # time.sleep(3)
+    # print(aa.ExecuteCommand('conmgr status'))
+    # print(2)
+    # time.sleep(3)
+    # print(aa.ExecuteCommand('conmgr status'))
+    # print(3)
+    # time.sleep(3)
+    # print(aa.ExecuteCommand('conmgr status'))
+    # print(4)
+
+    # lstCommand = ['vpd', 'conmgr status', 'mirror', 'explore b1']
+
+    # for i in range(len(lstCommand)):
+    #     result = aa.ExecuteCommand(lstCommand[i])
+    #     if result:
+    #         print result
+    #         i += 1
+    #     time.sleep(0.25)
+
+    bb = SSHConn('172.16.254.75', 22, 'admin', 'password', 5)
+    print(bb.ExecuteCommand('switchshow'))

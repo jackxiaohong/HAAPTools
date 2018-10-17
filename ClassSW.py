@@ -8,8 +8,10 @@ def deco(func):
     def _deco(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
-        except Exception:
+        except Exception as E:
             print('Please Check SAN Switch connection...')
+            print(func.__name__)
+            print(E)
     return _deco
 
 
@@ -35,11 +37,12 @@ class SANSW(object):
                                      self._username,
                                      self._password,
                                      self._timeout)
-            self._strAllPortError = objConnectToSW.exec_command(
+            self._strAllPortError = objConnectToSW.ExecuteCommand(
                 'porterrshow')
             self._SANSWConnection = objConnectToSW
         except Exception as E:
             print('Connect to SAN Switch {} Failed...'.format(self._host))
+            print(E)
 
     def _PutErrorToDict(self):
 
@@ -89,47 +92,67 @@ class SANSW(object):
 
     @deco
     def get_encout_by_port(self, intSWPort):
-        if intSWPort in self._dicPartPortError.keys():
-            return self._dicPartPortError[intSWPort][2]
+        if self._dicPartPortError:
+            if intSWPort in self._dicPartPortError.keys():
+                return self._dicPartPortError[intSWPort][2]
+            else:
+                print('Please Correct the Port Number...')
+                return None
         else:
-            print('Please Correct the Port Number...')
+            print('Get Error Dict First...')
             return None
 
     @deco
     def get_discC3_by_port(self, intSWPort):
-        if intSWPort in self._dicPartPortError.keys():
-            return self._dicPartPortError[intSWPort][3]
+        if self._dicPartPortError:
+            if intSWPort in self._dicPartPortError.keys():
+                return self._dicPartPortError[intSWPort][3]
+            else:
+                print('Please Correct the Port Number...')
+                return None
         else:
-            print('Please Correct the Port Number...')
+            print('Get Error Dict First...')
             return None
 
     @deco
     def get_encout_total(self):
-        int_encoutTotal = 0
-        for i in self._dicPartPortError:
-            if 'k' in self._dicPartPortError[i][2]:
-                return 'Over Thousand Errors of encout detected...'
-            elif 'm' in self._dicPartPortError[i][2]:
-                return 'Over Million Errors of encout detected...'
-            int_encoutTotal += int(self._dicPartPortError[i][2])
-        return int_encoutTotal
+        def _get_count(): 
+            int_encoutTotal = 0
+            for i in self._dicPartPortError:
+                if 'k' in self._dicPartPortError[i][2]:
+                    return 'Over Thousand Errors of encout detected...'
+                elif 'm' in self._dicPartPortError[i][2]:
+                    return 'Over Million Errors of encout detected...'
+                int_encoutTotal += int(self._dicPartPortError[i][2])
+            return int_encoutTotal
+        if self._dicPartPortError:
+            return _get_count()
+        else:
+            print('Get Error Dict First...')
+            return None
 
     @deco
     def get_discC3_total(self):
-        int_encoutTotal = 0
-        for i in self._dicPartPortError:
-            if 'k' in self._dicPartPortError[i][3]:
-                return 'Over Thousand Errors of discC3 detected...'
-            elif 'm' in self._dicPartPortError[i][3]:
-                return 'Over Million Errors of discC3 detected...'
-            int_encoutTotal += int(self._dicPartPortError[i][3])
-        return int_encoutTotal
+        def _get_count(): 
+            int_encoutTotal = 0
+            for i in self._dicPartPortError:
+                if 'k' in self._dicPartPortError[i][3]:
+                    return 'Over Thousand Errors of encout detected...'
+                elif 'm' in self._dicPartPortError[i][3]:
+                    return 'Over Million Errors of encout detected...'
+                int_encoutTotal += int(self._dicPartPortError[i][3])
+            return int_encoutTotal
+        if self._dicPartPortError:
+            return _get_count()
+        else:
+            print('Get Error Dict First...')
+            return None
 
     @deco
     def clear_porterr_All(self):
         if self._SANSWConnection:
             try:
-                self._SANSWConnection.exec_command('statsclear')
+                self._SANSWConnection.ExecuteCommand('statsclear')
                 return True
             except Exception as E:
                 print('Clear Error Count Failed...')
@@ -142,7 +165,7 @@ class SANSW(object):
     def clear_porterr_by_port(self, intSWPort):
         if self._boolConnectStatus:
             try:
-                self._SANSWConnection.exec_command(
+                self._SANSWConnection.ExecuteCommand(
                     'portstatsclear {}'.format(str(intSWPort)))
                 return True
             except Exception as E:
@@ -154,30 +177,30 @@ class SANSW(object):
 
 
 if __name__ == '__main__':
-
     lstPort = [2, 3, 4, 5]
     sw1 = SANSW('172.16.254.75', 22, 'admin', 'password', lstPort)
     # pprint.pprint(sw1._dicPartPortError)
     # print(sw1.get_encout_total())
     # print(sw1.get_discC3_total())
-    print(sw1.get_encout_by_port(3))
+    print(sw1.get_discC3_by_port(3))
     # print(sw1.get_encout_by_port(20))
     # print(sw1.get_linkfail_by_port(4))
     # sw1.clear_porterr_by_port(3)
-    print(sw1.get_encout_by_port(3))
+    # print(sw1.get_encout_by_port(2))
     sw1._dicPartPortError = None
-    print(sw1.get_encout_by_port(3))
-    lstSW = ['172.16.254.75', '172.16.254.76']
+    print(sw1.get_discC3_by_port(3))
+    # print(sw1.get_encout_by_port(3))
+    # lstSW = ['172.16.254.75', '172.16.254.76']
 
-    lstSWinstance = []
-    oddSWObject = OrderedDict()
-    for i in lstSW:
-        locals()['SW' + str(i)] = SANSW(i, 22, 'admin', 'password', lstPort)
-        lstSWinstance.append(locals()['SW' + str(i)])
-        # print(str('SW' + str(i)))
-        oddSWObject[str('SW' + str(i))] = locals()['SW' +
-                                                   str(i)]._dicPartPortError
+    # lstSWinstance = []
+    # oddSWObject = OrderedDict()
+    # for i in lstSW:
+    #     locals()['SW' + str(i)] = SANSW(i, 22, 'admin', 'password', lstPort)
+    #     lstSWinstance.append(locals()['SW' + str(i)])
+    #     # print(str('SW' + str(i)))
+    #     oddSWObject[str('SW' + str(i))] = locals()['SW' +
+    #                                                str(i)]._dicPartPortError
 
-    pprint.pprint(oddSWObject)
+    # pprint.pprint(oddSWObject)
 
     # print(dir(SANSW))
