@@ -1,5 +1,8 @@
 import re
 import os
+import datetime
+import getpass
+import ClassSW as sw
 
 # lstCommand = 'conmgr status'
 
@@ -64,12 +67,16 @@ import os
 
 #####-------------import in the function
 
-def p():
-    import pprint
-    pprint.pprint(list('WTForm'))
+# def p():
+#     import pprint
+#     pprint.pprint(list('WTForm'))
+
+# def strTime():
+#     strTimeNow = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+#     return 'Trace_' + strTimeNow
+    # print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7])
 
 if __name__ == '__main__':
-    p()
-
-
- 	'abc'.ljust
+    # print(strTime())
+    sw.SANSW('172.16.254.75', 22, strSWUser, strSWPWD, lstSWPorts[i])
+    

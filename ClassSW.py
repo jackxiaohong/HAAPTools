@@ -116,7 +116,7 @@ class SANSW(object):
 
     @deco
     def get_encout_total(self):
-        def _get_count(): 
+        def _get_count():
             int_encoutTotal = 0
             for i in self._dicPartPortError:
                 if 'k' in self._dicPartPortError[i][2]:
@@ -133,7 +133,7 @@ class SANSW(object):
 
     @deco
     def get_discC3_total(self):
-        def _get_count(): 
+        def _get_count():
             int_encoutTotal = 0
             for i in self._dicPartPortError:
                 if 'k' in self._dicPartPortError[i][3]:
@@ -174,6 +174,27 @@ class SANSW(object):
         else:
             print('Connect to SAN Switch lost...')
             return False
+
+    @deco
+    def show_porterrors(self):
+        def _show_porterrors():
+            lstDesc = ['PortID', 'FramTX', 'FramRX', 'encout',
+                       'Discc3', 'LinkFL', 'LossSC', 'LossSG']
+            for strDesc in lstDesc:
+                print(strDesc.center(8), end='')
+            print()
+            for intPort in self._dicPartPortError:
+                print(str(intPort).center(8), end='')
+                for strPortErr in self._dicPartPortError[intPort]:
+                    print(strPortErr.center(8), end='')
+                print()
+        if self._dicPartPortError:
+            print('The Ports Errors of SAN Switch {} ...'.format(self._host))
+            _show_porterrors()
+            print()
+        else:
+            print('Get Error Dict First...')
+            return None
 
 
 if __name__ == '__main__':

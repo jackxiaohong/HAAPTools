@@ -105,15 +105,13 @@ class SSHConn(object):
             _make_connect()
         except Exception as E:
             print(__name__, E)
-            try:
-                _make_connect()
-            except Exception as E:
-                pass
-            if not self._client:
-                print('Can not connect to {}'.format(self._host))
-    #         print('''
-    # Connect to {} Failed in {} Seconds ...
-    #         '''.format(self._host, self._timeout))
+            # try:
+            #     _make_connect()
+            # except Exception as E:
+            #     pass
+            # if not self._client:
+            #     print('Can not connect to {}'.format(self._host))
+
 
     def download(self, remotepath, localpath):
         def _download():
