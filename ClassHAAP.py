@@ -6,11 +6,65 @@ import os
 import time
 
 
+def trace_analize(self, oddHAAPErrorDict):
+    import xlwt
+
+    def _read_file(strFileName):
+        try:
+            with open(strFileName, 'r+') as f:
+                strTrace = f.read()
+            return strTrace.strip().replace('\ufeff', '')
+        except Exception as E:
+            print('Open File {} Failed...'.format(strFileName))
+            return None
+
+    def _trace_analize(lstTraceFiles):
+        intErrFlag = 0
+        strRunResult = ''
+        for strFileName in lstTraceFiles:
+            if (lambda i: i.startswith('Trace_'))(strFileName):
+                print('\n{}  Analysing ...'.format(strFileName))
+                strRunResult += '\n{}  Analysing ...\n'.format(strFileName)
+                openExcel = xlwt.Workbook()
+                for strErrType in oddHAAPErrorDict.keys():
+                    reErr = re.compile(oddHAAPErrorDict[strErrType])
+                    tupErr = reErr.findall(_read_file(strFileName))
+                    if len(tupErr) > 0:
+                        strOut = " *** {} Times of {} Found...".format(
+                            (len(tupErr) + 1), strErrType)
+                        print(strOut)
+                        strRunResult += strOut
+                        objSheet = openExcel.add_sheet(strErrType)
+                        for x in range(len(tupErr)):
+                            for y in range(len(tupErr[x])):
+                                objSheet.write(
+                                    x, y, tupErr[x][y].strip().replace(
+                                        "\n", '', 1))
+                        intErrFlag += 1
+                    else:
+                        pass
+                    reErr = None
+                else:
+                    pass
+                if intErrFlag > 0:
+                    openExcel.save('TraceAnalyse_' +
+                                   strFileName + '.xls')
+                else:
+                    strOut = '--- No Error in {}'.format(strFileName)
+                    print(strOut)
+                    strRunResult += strOut
+                intErrFlag = 0
+        return strRunResult
+
+    lstTraceFile = os.listdir('.')
+    _trace_analize(lstTraceFile)
+
 def deco_Exception(func):
     def _deco(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
-        except Exception:
+        except Exception as E:
+            print(__name__, E)
             print('Please Check HAAP connection...')
     return _deco
 
@@ -45,13 +99,27 @@ class HAAP():
         except Exception as E:
             print('Connect to HAAP Engine Failed...')
 
+    def _goto_BaseFolder(self, strBaseFolder):
+        try:
+            os.makedirs(strBaseFolder)
+        except OSError as E:
+            pass
+        except Exception as E:
+            print(__name__, E)
+            print('Create Folder {} Failed...'.format(strBaseFolder))
+        try:
+            os.chdir(strBaseFolder)
+        except Exception as E:
+            print(__name__, E)
+            print('Change to Folder {} Failed...'.format(strBaseFolder))
+
     @deco_Exception
     def get_vpd(self):
-        if self._Connection:
-            return self._Connection.ExecuteCommand('vpd')
+        if self._telnet_Connection:
+            return self._telnet_Connection.ExecuteCommand('vpd')
         else:
             self._connect()
-            return self._Connection.ExecuteCommand('vpd')
+            return self._telnet_Connection.ExecuteCommand('vpd')
 
     def get_engine_status(self):
         pass
@@ -76,15 +144,23 @@ class HAAP():
     def get_mirror_status(self):
         pass
 
-    def backup(self, strBackupFolder):
-        connFTP = self._FTP_Connection
-        lstCFGFile = ['cm.cfg', 'san.cfg', 'map.cfg']
+    def backup(self, strBaseFolder):
+        strOriginalFolder = os.getcwd()
         try:
+            self._goto_BaseFolder(strBaseFolder)
+            connFTP = self._FTP_Connection
+            lstCFGFile = ['automap.cfg', 'cm.cfg', 'san.cfg']
             for strCFGFile in lstCFGFile:
-                connFTP.GetFile('bin_conf', strCFGFile, './',
+                connFTP.GetFile('bin_conf', '.', strCFGFile,
                                 'backup_{}_{}'.format(self._host, strCFGFile))
+                print('{} Backup Completely for {}'.format(
+                    strCFGFile.ljust(12), self._host))
+                time.sleep(1)
         except Exception as E:
-            print('Backup Failed...')
+            print(__name__, E)
+            print('Config Backup Failed for {}'.format(self._host))
+        finally:
+            os.chdir(strOriginalFolder)
 
     def execute_multi_command(self, strCMDFile):
         tnExecute = self._telnet_Connection.ExecuteCommand()
@@ -101,9 +177,10 @@ class HAAP():
                 i += 1
                 time.sleep(0.25)
 
-    def get_trace(self, intTraceLevel):
+    def get_trace(self, intTraceLevel, strBaseFolder):
         tn = self._telnet_Connection
         connFTP = self._FTP_Connection
+        strOriginalFolder = os.getcwd()
 
         def _get_oddCommand(intTraceLevel):
             oddCommand = OrderedDict()
@@ -137,7 +214,7 @@ class HAAP():
             strTraceName = _get_trace_name(command)
             if strTraceName:
                 try:
-                    connFTP.GetFile('mbtrace', strTraceName, './',
+                    connFTP.GetFile('mbtrace', strTraceName, '.',
                                     'Trace_{}_{}.log'.format(strTraceDes,
                                                              self._host))
                     return True
@@ -148,19 +225,22 @@ class HAAP():
         lstCommand = list(oddCommand.values())
         lstDescribe = list(oddCommand.keys())
 
-        for i in range(len(lstDescribe)):
-            try:
+        try:
+            self._goto_BaseFolder(strBaseFolder)
+            for i in range(len(lstDescribe)):
                 if not tn:
                     self._telnet_connect()
                 if not connFTP:
                     self._FTP_connect()
                 _get_trace_file(lstCommand[i], lstDescribe[i])
-            except Exception as E:
-                print(instance.__name__, '\r', __name__, '\r', E)
+        except Exception as E:
+            print(__name__, E)
+        finally:
+            os.chdir(strOriginalFolder)
 
     def periodic_check(self, lstCommand, strResultFolder, strResultFile):
         tnExecute = self._telnet_Connection.ExecuteCommand()
-        strOldDir = os.getcwd()
+        strOriginalFolder = os.getcwd()
         try:
             os.makedirs(strResultFolder)
         except OSError as E:
@@ -180,62 +260,16 @@ class HAAP():
                     i += 1
                     time.sleep(0.25)
         finally:
-            os.chdir(strOldDir)
-
-    def trace_analize(self, oddHAAPErrorDict):
-        import xlwt
-
-        def _read_file(strFileName):
-            try:
-                with open(strFileName, 'r+') as f:
-                    strTrace = f.read()
-                return strTrace.strip().replace('\ufeff', '')
-            except Exception as E:
-                print('Open File {} Failed...'.format(strFileName))
-                return None
-
-        def _trace_analize(lstTraceFiles):
-            intErrFlag = 0
-            strRunResult = ''
-            for strFileName in lstTraceFiles:
-                if (lambda i: i.startswith('Trace_'))(strFileName):
-                    print('\n{}  Analysing ...'.format(strFileName))
-                    strRunResult += '\n{}  Analysing ...\n'.format(strFileName)
-                    openExcel = xlwt.Workbook()
-                    for strErrType in oddHAAPErrorDict.keys():
-                        reErr = re.compile(oddHAAPErrorDict[strErrType])
-                        tupErr = reErr.findall(_read_file(strFileName))
-                        if len(tupErr) > 0:
-                            strOut = " *** {} Times of {} Found...".format(
-                                (len(tupErr) + 1), strErrType)
-                            print(strOut)
-                            strRunResult += strOut
-                            objSheet = openExcel.add_sheet(strErrType)
-                            for x in range(len(tupErr)):
-                                for y in range(len(tupErr[x])):
-                                    objSheet.write(
-                                        x, y, tupErr[x][y].strip().replace(
-                                            "\n", '', 1))
-                            intErrFlag += 1
-                        else:
-                            pass
-                        reErr = None
-                    else:
-                        pass
-                    if intErrFlag > 0:
-                        openExcel.save('TraceAnalyse_' +
-                                       strFileName + '.xls')
-                    else:
-                        strOut = '--- No Error in {}'.format(strFileName)
-                        print(strOut)
-                        strRunResult += strOut
-                    intErrFlag = 0
-            return strRunResult
-
-        lstTraceFile = os.listdir('.')
-        _trace_analize(lstTraceFile)
+            os.chdir(strOriginalFolder)
 
 
 if __name__ == '__main__':
-    aa = HAAP('172.16.254.71', 21, '.com')
+    aa = HAAP('172.16.254.71', 23, '.com', 21)
     print(aa.get_vpd())
+    print(os.getcwd())
+    aa.backup('abc2/wdswe/')
+    print(os.getcwd())
+
+    #w = ClassConnect.FTPConn('172.16.254.71', 21, 'adminftp', '.com')
+
+    #print(w.getwelcome())
