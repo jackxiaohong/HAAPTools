@@ -16,10 +16,10 @@ class FTPConn(object):
         self._connect()
 
     def _connect(self):
-
         ftp = FTP()
         try:
             ftp.connect(self._host, self._port)
+            print('connect................')
         except TimeoutError as E:
             print('\nFTP Connect to {} Failed'.format(self._host))
         try:
@@ -43,7 +43,7 @@ class FTPConn(object):
                 ftp.retrlines('RETR {}'.format(strRemoteFileName),
                               objOpenLocalFile.write)
             objOpenLocalFile.close()
-            ftp.close()
+            ftp.cwd('/')
 
         if self._Connection:
             _getfile()
@@ -70,7 +70,6 @@ class FTPConn(object):
                     strRemoteFileName), objOpenLocalFile)
             ftp.set_debuglevel(0)
             objOpenLocalFile.close()
-            ftp.close()
 
         if self._Connection:
             _putfile()
@@ -94,30 +93,57 @@ class SSHConn(object):
         self._connect()
 
     def _connect(self):
-        try:
+        def _make_connect():
             objSSHClient = paramiko.SSHClient()
             objSSHClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             objSSHClient.connect(self._host, port=self._port,
                                  username=self._username,
                                  password=self._password,
                                  timeout=self._timeout)
-
             self._client = objSSHClient
-
+        try:
+            _make_connect()
         except Exception as E:
-            print('''
-    Connect to {} Failed in {} Seconds ...
-            '''.format(self._host, self._timeout))
+            print(__name__, E)
+            try:
+                _make_connect()
+            except Exception as E:
+                pass
+            if not self._client:
+                print('Can not connect to {}'.format(self._host))
+    #         print('''
+    # Connect to {} Failed in {} Seconds ...
+    #         '''.format(self._host, self._timeout))
 
     def download(self, remotepath, localpath):
-        if self._sftp is None:
-            self._sftp = self._client.open_sftp()
-        self._sftp.get(remotepath, localpath)
+        def _download():
+            if self._sftp is None:
+                self._sftp = self._client.open_sftp()
+            self._sftp.get(remotepath, localpath)
+        try:
+            _download()
+        except AttributeError as E:
+            print(__name__, E)
+            print('Download Failed,Not Connect to {}'.format(self._host))
+            return None
+        else:
+            print(__name__, E)
+            print('Download Failed ...')
 
     def upload(self, localpath, remotepath):
-        if self._sftp is None:
-            self._sftp = self._client.open_sftp()
-        self._sftp.put(localpath, remotepath)
+        def _upload():
+            if self._sftp is None:
+                self._sftp = self._client.open_sftp()
+            self._sftp.put(localpath, remotepath)
+        try:
+            _upload()
+        except AttributeError as E:
+            print(__name__, E)
+            print('Upload Failed,Not Connect to {}'.format(self._host))
+            return None
+        else:
+            print(__name__, E)
+            print('Upload Failed ...')
 
     def ExecuteCommand(self, command):
         def GetRusult():
@@ -134,10 +160,10 @@ class SSHConn(object):
         if self._client:
             return GetRusult()
         else:
-            self._connect()
-            if self._client:
+            try:
+                self._connect()
                 return GetRusult()
-            else:
+            except Exception as E:
                 print('Command {} Execute Failed...'.format(command))
                 return None
 
@@ -263,5 +289,6 @@ if __name__ == '__main__':
     #         i += 1
     #     time.sleep(0.25)
 
-    bb = SSHConn('172.16.254.75', 22, 'admin', 'password', 5)
-    print(bb.ExecuteCommand('switchshow'))
+    bb = SSHConn('172.16.254.78', 22, 'admin', 'password', 5)
+    # print(bb.ExecuteCommand('switchshow'))
+    bb.download('abc', 'def')
