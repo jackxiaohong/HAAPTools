@@ -14,42 +14,6 @@ try:
 except Exception:
     import ConfigParser as cp
 
-#----------------------------------------- 动态对象实例化及访问
-# lstSW = ['172.16.254.75', '172.16.254.76']
-# lstSWPorts = [[2, 3, 4, 5], [2, 3, 4, 5]]
-# # 用字典键作为实例化对象名，字典值即是相对应的对象
-# oddSWObject = Odd()
-# for i in range(len(lstSW)):
-#     oddSWObject['SW' + str(lstSW[i])] = sw.SANSW(lstSW[i],
-#                                                  22, 'admin',
-#                                                  'password',
-#                                                  lstPort[i])
-# print(oddSWObject)
-# for i in oddSWObject.values():
-#     print(i.get_discC3_by_port(3))
-
-# for i in oddSWObject.keys():
-#     print(oddSWObject[i].get_discC3_by_port(3))
-
-# ip = '172.16.254.75'
-# print('...')
-# print(oddSWObject['SW' + ip].get_discC3_by_port(3))
-
-# # 动态定义变量名作为实例化对象名，调用时需要手动写变量名或者用locals动态调用
-# print('###')
-# for i in range(len(lstSW)):
-#     locals()['SW' + str(i)] = sw.SANSW(lstSW[i],
-#                                        22, 'admin', 'password', lstPort[i])
-# print(SW0.get_discC3_by_port(3))
-# print(locals()['SW0'].get_discC3_by_port(3))
-# 直接用SAN交换机IP地址（字典键值）做实例名，动态生成实例字典
-# oddSWInst = OrderedDict()
-#     for i in range(len(lstSW)):
-#         oddSWInst[lstSW[i]] = SANSW(lstSW[i], 22, 'admin', 'password', lstPort[i])
-#     print(oddSWInst)
-#     for i in lstSW:
-#         print(oddSWInst[i].get_discC3_by_port(3))
-
 
 strHelp = '''
         -run            : Run Normally
@@ -59,9 +23,9 @@ strHelp = '''
         -check          : Run Periodic Check
         '''
 
-
-strTimeNow = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-
+strAutoCLIHelp = '''
+    autoCLI <Engine_IP> <Command_File>
+'''
 
 objCFG = cp.ConfigParser(allow_no_value=True)
 objCFG.read('Conf.ini')
@@ -83,9 +47,8 @@ else:
     strSWPWD = getpass.getpass(
         prompt='Please Input Your SAN Switch Password for User {}:'.format(
             strSWUser), stream=None)
+# <<<SAN Switch Config>>>
 
-
-strSWPortErrorFolder = objCFG.get('FolderSetting', 'swporterr')
 
 # <<<HAAP Config>>>
 lstHAAP = list(i[0] for i in objCFG.items('Engines'))
@@ -101,61 +64,128 @@ else:
     strHAAPPasswd = getpass.getpass(
         prompt='Please Input Your Engine Password: ', stream=None)
 
-#TCFolder = HAAP Trace Folder
-strTCFolder = objCFG.get('FolderSetting', 'trace')
-#CFGFolder = HAAP Config Backup Folder
-strCFGFolder = objCFG.get('FolderSetting', 'cfgbackup')
-#PCFolder = HAAP Periodic Check Result Folder
-strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
+oddHAAPErrorDict = Odd()
+for i in objCFG.items('TraceRegular'):
+    oddHAAPErrorDict[i[0]] = eval(i[1])
+# <<<HAAP Config>>>
 
+# <<<Folder Config>>>
+# SWPEFolder = SAN Switch Port Error Folder
+strSWPEFolder = objCFG.get('FolderSetting', 'swporterr')
+
+# TCFolder = HAAP Trace Folder
+strTCFolder = objCFG.get('FolderSetting', 'trace')
+# TCAFolder = HAAP Trace Analyse Folder
+strTCAFolder = objCFG.get('FolderSetting', 'traceanalyse')
+# CFGFolder = HAAP Config Backup Folder
+strCFGFolder = objCFG.get('FolderSetting', 'cfgbackup')
+# PCFolder = HAAP Periodic Check Result Folder
+strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
+# <<<Folder Config>>>
+
+
+def _get_TimeNow():
+    return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+
+
+# en-Instance The HAAP by IP...
+def _HAAP(strEngineIP):
+    return haap.HAAP(strEngineIP, intTNPort, strHAAPPasswd, intFTPPort)
+
+
+# en-Instance The SAN Switch by IP and SAN Switch Ports...
+def _SW(strSWIP, lstSWPorts):
+    return sw.SANSW(strSWIP, intSWSSHPort,
+                    strSWUser, strSWPWD, lstSWPorts)
+
+
+# en-Instance All The SAN Switchs by IP and SAN Switch Ports...
 def _get_SWInstance():
     oddSWInst = Odd()
     for i in range(len(lstSW)):
-        oddSWInst[lstSW[i]] = sw.SANSW(lstSW[i], intSWSSHPort,
-                                       strSWUser, strSWPWD, lstSWPorts[i])
+        oddSWInst[lstSW[i]] = _SW(lstSW[i], lstSWPorts[i])
     return oddSWInst
 
-def _get_HAAP_TNInstance():
+
+# en-Instance ALL The HAAPs in the config file by IP...
+def _get_HAAPInstance():
     oddTNInst = Odd()
-    for i in range(len(lstEngineIPs)):
-        oddSWInst[lstSW[i]] = sw.SANSW(lstSW[i], intSWSSHPort,
-                                       strSWUser, strSWPWD, lstSWPorts[i])
-        HAAP('172.16.254.71', 23, '.com', 21)
-    return oddSWInst
+    for i in range(len(lstHAAP)):
+        oddTNInst[lstHAAP[i]] = _HAAP(lstHAAP[i])
+    return oddTNInst
 
-def _get_HAAP_FTPInstance():
-    oddSWInst = Odd()
-    for i in range(len(lstSW)):
-        oddSWInst[lstSW[i]] = sw.SANSW(lstSW[i], intSWSSHPort,
-                                       strSWUser, strSWPWD, lstSWPorts[i])
-    return oddSWInst
+
+def _AutoCLI(strEngineIP, CMDFile):
+    # haap.HAAP(strEngineIP,
+    #           intTNPort,
+    #           strHAAPPasswd,
+    #           intFTPPort).execute_multi_command(CMDFile)
+    _HAAP(strEngineIP).execute_multi_command(CMDFile)
+
+
+def _FWUpdate(strEngineIP, strFWFile):
+    # haap.HAAP(strEngineIP,
+    #           intTNPort,
+    #           strHAAPPasswd,
+    #           intFTPPort).updateFW(strFWFile)
+    _HAAP(strEngineIP).updateFW(strFWFile)
+
 
 def main():
     if len(sys.argv) == 1 or len(sys.argv) > 2:
         print(strHelp)
 
-    # elif sys.argv[1] == '-run':
+    elif sys.argv[1] == 'porterrshow':
+        for i in lstSW:
+            _get_SWInstance()[i].show_porterrors()
+
+    elif sys.argv[1] == 'clearporterrorAll':
+        for i in lstSW:
+            _get_SWInstance()[i].clear_porterr_All()
+
+    elif sys.argv[1] == 'CFGbackup':
+        for i in lstHAAP:
+            _get_HAAPInstance()[i].backup('{}/{}'.format(
+                strCFGFolder, _get_TimeNow()))
+
+    elif sys.argv[1] == 'getTrace':
+        for i in lstHAAP:
+            _get_HAAPInstance()[i].get_trace('{}/{}'.format(
+                strTCFolder, _get_TimeNow()),
+                intTLevel)
+
+    elif sys.argv[1] == 'analyseHAAP':
+        strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow())
+        for i in lstHAAP:
+            _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
+        s.TraceAnalyse(strTraceFolder)
+
+    elif sys.argv[1] == 'autoCLI':
+        if len(sys.argv) != 3:
+            print(strAutoCLIHelp)
+        else:
+            _AutoCLI(sys.argv[2], sys.argv[3])
+
+    elif sys.argv[1] == 'updateFW':
+        if len(sys.argv) != 3:
+            print(strAutoCLIHelp)
+        else:
+            _AutoCLI(sys.argv[2], sys.argv[3])
+
+            # elif sys.argv[1] == '-run':
     #     moduleOldFileClean.Clean()
     #     moduleGetTrace.GetTrace()
     #     moduleTraceAnalyse.TraceAnalyze()
     #     moduleSWPortErrorAnalyze.SWPortErrorAnalyze()
     #     moduleZipCollections.ZipCollections()
+            # elif sys.argv[1] == '-statsclear':
+            #     moduleClearPortError.ClearPortError()
 
-    elif sys.argv[1] == '-porterrshow':
-        for i in lstSW:
-            _get_SWInstance()[i].show_porterrors()
+            # elif sys.argv[1] == '-zipall':
+            #     moduleZipCollections.ZipAll()
 
-    elif sys.argv[1] == '-clearporterrorAll':
-        for i in lstSW:
-            _get_SWInstance()[i].clear_porterr_All()
-    # elif sys.argv[1] == '-statsclear':
-    #     moduleClearPortError.ClearPortError()
-
-    # elif sys.argv[1] == '-zipall':
-    #     moduleZipCollections.ZipAll()
-
-    # elif sys.argv[1] == '-check':
-    #     modulePeriodicCheck.main()
+            # elif sys.argv[1] == '-check':
+            #     modulePeriodicCheck.main()
 
     else:
         print(strHelp)

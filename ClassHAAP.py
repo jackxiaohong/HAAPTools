@@ -47,7 +47,6 @@ class HAAP():
         except Exception as E:
             print('Connect to HAAP Engine Failed...')
 
-
     @deco_Exception
     def get_vpd(self):
         if self._telnet_Connection:
@@ -97,6 +96,17 @@ class HAAP():
         finally:
             os.chdir(strOriginalFolder)
 
+    def updateFW(self, strFWFile):
+        objFTPPut = self._FTP_Connection.PutFile()
+        try:
+            objFTPPut('mbflash', '.', 'fwimage', strFWFile)
+            return True
+        except Exception as E:
+            print(__name__, E)
+            print('FW Update Failed for Engine {}...'.format(
+                self._host))
+            return False
+
     def execute_multi_command(self, strCMDFile):
         tnExecute = self._telnet_Connection.ExecuteCommand()
         with open(strCMDFile, 'r') as f:
@@ -112,26 +122,26 @@ class HAAP():
                 i += 1
                 time.sleep(0.25)
 
-    def get_trace(self, intTraceLevel, strBaseFolder):
+    def get_trace(self, strBaseFolder, intTraceLevel):
         tn = self._telnet_Connection
         connFTP = self._FTP_Connection
         strOriginalFolder = os.getcwd()
 
         def _get_oddCommand(intTraceLevel):
-            oddCommand = OrderedDict()
+            oddCMD = OrderedDict()
             if intTraceLevel == 1 or intTraceLevel == 2 or intTraceLevel == 3:
-                oddCommand['Trace'] = 'ftpprep trace'
+                oddCMD['Trace'] = 'ftpprep trace'
                 if intTraceLevel == 2 or intTraceLevel == 3:
-                    oddCommand['Primary'] = 'ftpprep coredump primary all'
+                    oddCMD['Primary'] = 'ftpprep coredump primary all'
                     if intTraceLevel == 3:
-                        oddCommand['Secondary'] = 'ftpprep coredump secondary all'
-                return oddCommand
+                        oddCMD['Secondary'] = 'ftpprep coredump secondary all'
+                return oddCMD
             else:
                 print('Error: Trace Level Must Be 1,2,3')
                 return None
 
         def _get_trace_file(command, strTraceDes):
-
+            # TraceDes = Trace Description
             def _get_trace_name():
                 result = tn.ExecuteCommand(command)
                 if result:
@@ -146,7 +156,7 @@ class HAAP():
                     print('Execute Command "{}" Failed...')
                     return None
 
-            strTraceName = _get_trace_name(command)
+            strTraceName = _get_trace_name()
             if strTraceName:
                 try:
                     connFTP.GetFile('mbtrace', strTraceName, '.',
@@ -207,4 +217,4 @@ if __name__ == '__main__':
 
     #w = ClassConnect.FTPConn('172.16.254.71', 21, 'adminftp', '.com')
 
-    #print(w.getwelcome())
+    # print(w.getwelcome())

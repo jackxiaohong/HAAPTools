@@ -24,7 +24,7 @@ def GotoFolder(strFolder):
         return False
 
 
-def TraceAnalyse(self, oddHAAPErrorDict):
+def TraceAnalyse(self, oddHAAPErrorDict, strTraceFolder):
     import re
     import xlwt
 
@@ -74,6 +74,10 @@ def TraceAnalyse(self, oddHAAPErrorDict):
                     strRunResult += strOut
                 intErrFlag = 0
         return strRunResult
-
-    lstTraceFile = os.listdir('.')
-    _trace_analize(lstTraceFile)
+    strOriginalFolder = os.getcwd()
+    try:
+        GotoFolder(strTraceFolder)
+        lstTraceFile = os.listdir('.')
+        _trace_analize(lstTraceFile)
+    finally:
+        os.chdir(strOriginalFolder)
