@@ -99,7 +99,7 @@ class HAAP():
         if self._telnet_Connection:
             strEngine_info = self._telnet_Connection.ExecuteCommand('engine')
         else:
-            self._telnet_Connection
+            self._connect()
             strEngine_info = self._telnet_Connection.ExecuteCommand('engine')
 
         # make sure we can get engine info
@@ -119,7 +119,7 @@ class HAAP():
         if self._telnet_Connection:
             return self._telnet_Connection.ExecuteCommand('mirror')
         else:
-            self._telnet_Connection
+            self._connect()
             return self._telnet_Connection.ExecuteCommand('mirror')
 
     def get_mirror_status(self):
@@ -183,7 +183,6 @@ class HAAP():
         try:
             time.sleep(1)
             FTPConn.PutFile('/mbflash', './', 'fwimage', strFWFile)
-            print('okkkkkkk')
             return True
         except Exception as E:
             print(__name__, E)
@@ -232,7 +231,7 @@ class HAAP():
                     if strTraceName:
                         return strTraceName.group()
                     else:
-                        print('Generate Trace "{}" File Failed for {}...'.format(
+                        print('Generate Trace "{}" File Failed for {}'.format(
                             strTraceDes, self._host))
                         return None
                 else:
@@ -242,9 +241,9 @@ class HAAP():
             strTraceName = _get_trace_name()
             if strTraceName:
                 try:
-                    connFTP.GetFile('mbtrace', '.', strTraceName, 
+                    connFTP.GetFile('mbtrace', '.', strTraceName,
                                     'Trace_{}_{}.log'.format(
-                                    self._host, strTraceDes))
+                                        self._host, strTraceDes))
                     print('Get Trace {} for Engine {} Completely ...'.format(
                         '"{}"'.format(strTraceDes).ljust(10), self._host))
                     return True
@@ -283,7 +282,7 @@ class HAAP():
                         print(strResult)
                         f.write(strResult)
                     else:
-                        strErr = '\n*** Execute Command "{}" Failed...\n'.format(
+                        strErr = '\n*** Execute Command "{}" Failed\n'.format(
                             strCMD)
                         print(strErr)
                         f.write(strErr)
