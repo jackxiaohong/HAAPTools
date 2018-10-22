@@ -76,7 +76,23 @@ import ClassSW as sw
 #     return 'Trace_' + strTimeNow
     # print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7])
 
+
+### get trace name...
+
+result = '''
+>ftpprep trace
+
+ftp_data_20181021_114517.txt has been created in the mbtrace directory
+'''
+def gt(result):
+    reTraceName = re.compile(r'(ftp_data_\d{8}_\d{6}.txt)')
+    strTraceName = reTraceName.search(result)
+    if strTraceName:
+        print(strTraceName.group())
+        return strTraceName
+
 if __name__ == '__main__':
     # print(strTime())
-    sw.SANSW('172.16.254.75', 22, strSWUser, strSWPWD, lstSWPorts[i])
+    # sw.SANSW('172.16.254.75', 22, strSWUser, strSWPWD, lstSWPorts[i])
+    gt(result)
     
