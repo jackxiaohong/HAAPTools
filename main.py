@@ -14,7 +14,7 @@ try:
 except Exception:
     import ConfigParser as cp
 
-
+# <<<Help String Feild>>>
 strHelp = '''
         -run            : Run Normally
         -porterrshow    : Run, but Collect PortError only
@@ -27,8 +27,17 @@ strAutoCLIHelp = '''
     autoCLI <Engine_IP> <Command_File>
 '''
 
+strHelpAnalyseTrace = '''
+    analyseTrace <Trace_Folder>
+'''
+# <<<Help String Feild>>>
+
+
+# <<<Read Config File Feild>>>
 objCFG = cp.ConfigParser(allow_no_value=True)
 objCFG.read('Conf.ini')
+# <<<Read Config File Feild>>>
+
 
 # <<<SAN Switch Config>>>
 strSWUser = objCFG.get('SWSetting', 'username')
@@ -69,11 +78,11 @@ for i in objCFG.items('TraceRegular'):
     oddHAAPErrorDict[i[0]] = eval(i[1])
 # <<<HAAP Config>>>
 
+
 # <<<Folder Config>>>
 # SWPEFolder = SAN Switch Port Error Folder
 strSWPEFolder = objCFG.get('FolderSetting', 'swporterr')
-
-# TCFolder = HAAP Trace Folder
+# TCFolder = HAAP Get Trace Folder
 strTCFolder = objCFG.get('FolderSetting', 'trace')
 # TCAFolder = HAAP Trace Analyse Folder
 strTCAFolder = objCFG.get('FolderSetting', 'traceanalyse')
@@ -83,6 +92,9 @@ strCFGFolder = objCFG.get('FolderSetting', 'cfgbackup')
 strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 # <<<Folder Config>>>
 
+
+# <<<Inside Function Feild>>>
+# ################################################
 
 def _get_TimeNow():
     return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -114,25 +126,12 @@ def _get_HAAPInstance():
         oddTNInst[lstHAAP[i]] = _HAAP(lstHAAP[i])
     return oddTNInst
 
-
-def _AutoCLI(strEngineIP, CMDFile):
-    # haap.HAAP(strEngineIP,
-    #           intTNPort,
-    #           strHAAPPasswd,
-    #           intFTPPort).execute_multi_command(CMDFile)
-    _HAAP(strEngineIP).execute_multi_command(CMDFile)
-
-
-def _FWUpdate(strEngineIP, strFWFile):
-    # haap.HAAP(strEngineIP,
-    #           intTNPort,
-    #           strHAAPPasswd,
-    #           intFTPPort).updateFW(strFWFile)
-    _HAAP(strEngineIP).updateFW(strFWFile)
+# ################################################
+# <<<Inside Function Feild>>>
 
 
 def main():
-    if len(sys.argv) == 1 or len(sys.argv) > 2:
+    if len(sys.argv) == 1:
         print(strHelp)
 
     elif sys.argv[1] == 'porterrshow':
@@ -160,32 +159,25 @@ def main():
             _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
         s.TraceAnalyse(strTraceFolder)
 
+    elif sys.argv[1] == 'analyseTrace':
+        if len(sys.argv) != 2:
+            print(strHelpAnalyseTrace)
+        elif isinstance(sys.argv[1], str):
+            s.TraceAnalyse(sys.argv[1])
+        else:
+            print('Please Provide Trace Folder To Analyse ...')
+
     elif sys.argv[1] == 'autoCLI':
         if len(sys.argv) != 3:
             print(strAutoCLIHelp)
         else:
-            _AutoCLI(sys.argv[2], sys.argv[3])
+            _HAAP(sys.argv[2]).execute_multi_command(sys.argv[3])
 
     elif sys.argv[1] == 'updateFW':
         if len(sys.argv) != 3:
             print(strAutoCLIHelp)
         else:
-            _AutoCLI(sys.argv[2], sys.argv[3])
-
-            # elif sys.argv[1] == '-run':
-    #     moduleOldFileClean.Clean()
-    #     moduleGetTrace.GetTrace()
-    #     moduleTraceAnalyse.TraceAnalyze()
-    #     moduleSWPortErrorAnalyze.SWPortErrorAnalyze()
-    #     moduleZipCollections.ZipCollections()
-            # elif sys.argv[1] == '-statsclear':
-            #     moduleClearPortError.ClearPortError()
-
-            # elif sys.argv[1] == '-zipall':
-            #     moduleZipCollections.ZipAll()
-
-            # elif sys.argv[1] == '-check':
-            #     modulePeriodicCheck.main()
+            _HAAP(sys.argv[2]).updateFW(sys.argv[3])
 
     else:
         print(strHelp)
