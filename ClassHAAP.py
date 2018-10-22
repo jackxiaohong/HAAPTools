@@ -112,7 +112,7 @@ class HAAP():
             return self._telnet_Connection.ExecuteCommand('mirror')
 
     def get_mirror_status(self):
-        strMirror = self.get_mirror_info
+        strMirror = self.get_mirror_info()
         reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  #e.g." 33281(0x8201)"
         reNoMirror = re.compile(r'No mirrors defined')
         
