@@ -126,6 +126,9 @@ def _get_HAAPInstance():
         oddTNInst[lstHAAP[i]] = _HAAP(lstHAAP[i])
     return oddTNInst
 
+
+def _TraceAnalyse(strDesFolder):
+    s.TraceAnalyse(oddHAAPErrorDict, strDesFolder)
 # ################################################
 # <<<Inside Function Feild>>>
 
@@ -157,13 +160,13 @@ def main():
         strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow())
         for i in lstHAAP:
             _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
-        s.TraceAnalyse(strTraceFolder)
+        _TraceAnalyse(strTraceFolder)
 
     elif sys.argv[1] == 'analyseTrace':
         if len(sys.argv) != 2:
             print(strHelpAnalyseTrace)
         elif isinstance(sys.argv[1], str):
-            s.TraceAnalyse(sys.argv[1])
+            _TraceAnalyse(sys.argv[1])
         else:
             print('Please Provide Trace Folder To Analyse ...')
 
@@ -178,6 +181,9 @@ def main():
             print(strAutoCLIHelp)
         else:
             _HAAP(sys.argv[2]).updateFW(sys.argv[3])
+
+    elif sys.argv[1] == 'test':
+        print(len(sys.argv))
 
     else:
         print(strHelp)
