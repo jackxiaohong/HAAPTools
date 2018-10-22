@@ -55,9 +55,19 @@ class HAAP():
         else:
             self._connect()
             return self._telnet_Connection.ExecuteCommand('vpd')
-
+    
+    @deco_Exception
     def get_engine_status(self):
-        pass
+        if self._telnet_Connection:
+            strEnter = self._telnet_Connection.ExecuteCommand('')
+        else:
+            self._connect()
+            strEnter = self._telnet_Connection.ExecuteCommand('')
+        reCLI = re.compile(r'CLI>')
+        if reCLI.search(strEnter):
+            return "ONLINE"
+        else:
+            return "offline"
     
     def get_uptime(self, command="human"):
         strVPD_Info = self.get_vpd()
