@@ -27,6 +27,10 @@ strAutoCLIHelp = '''
     autoCLI <Engine_IP> <Command_File>
 '''
 
+strPCHelp = '''
+    pc <Engine_IP>
+'''
+
 objCFG = cp.ConfigParser(allow_no_value=True)
 objCFG.read('Conf.ini')
 
@@ -115,12 +119,21 @@ def _get_HAAPInstance():
     return oddTNInst
 
 
+def _periodic_check(strEngineIP):
+    _HAAP(strEngineIP).periodic_check(lstCheckCMD,
+                                        strPCFolder,
+                                    'PC_{}_{}.log'.format(
+                                        _get_TimeNow(), strEngineIP))
+
 def _AutoCLI(strEngineIP, CMDFile):
     # haap.HAAP(strEngineIP,
     #           intTNPort,
     #           strHAAPPasswd,
     #           intFTPPort).execute_multi_command(CMDFile)
     _HAAP(strEngineIP).execute_multi_command(CMDFile)
+
+
+
 
 
 def _FWUpdate(strEngineIP, strFWFile):
@@ -132,7 +145,7 @@ def _FWUpdate(strEngineIP, strFWFile):
 
 
 def main():
-    if len(sys.argv) == 1 or len(sys.argv) > 2:
+    if len(sys.argv) == 1:
         print(strHelp)
 
     elif sys.argv[1] == 'porterrshow':
@@ -149,10 +162,9 @@ def main():
                 strCFGFolder, _get_TimeNow()))
 
     elif sys.argv[1] == 'getTrace':
+        strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
         for i in lstHAAP:
-            _get_HAAPInstance()[i].get_trace('{}/{}'.format(
-                strTCFolder, _get_TimeNow()),
-                intTLevel)
+            _get_HAAPInstance()[i].get_trace(strTraceFolder,intTLevel)
 
     elif sys.argv[1] == 'analyseHAAP':
         strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow())
@@ -161,16 +173,26 @@ def main():
         s.TraceAnalyse(strTraceFolder)
 
     elif sys.argv[1] == 'autoCLI':
-        if len(sys.argv) != 3:
+        if len(sys.argv) != 4:
             print(strAutoCLIHelp)
         else:
             _AutoCLI(sys.argv[2], sys.argv[3])
 
-    elif sys.argv[1] == 'updateFW':
+    elif sys.argv[1] == 'pc':
         if len(sys.argv) != 3:
+            print(strPCHelp)
+        else:
+            _periodic_check(sys.argv[2])
+
+    elif sys.argv[1] == 'pcALL':
+        for i in lstHAAP:
+            _periodic_check(i)
+
+    elif sys.argv[1] == 'updateFW':
+        if len(sys.argv) != 4:
             print(strAutoCLIHelp)
         else:
-            _AutoCLI(sys.argv[2], sys.argv[3])
+            _FWUpdate(sys.argv[2], sys.argv[3])
 
             # elif sys.argv[1] == '-run':
     #     moduleOldFileClean.Clean()
@@ -186,6 +208,8 @@ def main():
 
             # elif sys.argv[1] == '-check':
             #     modulePeriodicCheck.main()
+    elif sys.argv[1] == 'test':
+        print(len(sys.argv))
 
     else:
         print(strHelp)

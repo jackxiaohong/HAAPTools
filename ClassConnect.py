@@ -17,16 +17,27 @@ class FTPConn(object):
 
     def _connect(self):
         ftp = FTP()
-        try:
-            ftp.connect(self._host, self._port)
-            print('connect................')
-        except TimeoutError as E:
-            print('\nFTP Connect to {} Failed'.format(self._host))
-        try:
-            ftp.login(self._username, self._password)
-        except Exception as E:
-            print(E)
-        self._Connection = ftp
+        def _conn():
+            try:
+                ftp.connect(self._host, self._port)
+                return True
+            except Exception as E:
+                print('\nFTP Connect to {} Failed...\nReason: {}'.format(
+                    self._host, E))
+                return False
+
+        def _login():
+            try:
+                ftp.login(self._username, self._password)
+                return True
+            except Exception as E:
+                print('\nFTP Login to {} Failed...\nReason: {}'.format(
+                    self._host, E))
+                return False
+
+        if _conn():
+            if _login():
+                self._Connection = ftp
 
     def GetFile(self, strRemoteFolder, strLocalFolder, strRemoteFileName,
                 strLocalFileName, FTPtype='bin', intBufSize=1024):
@@ -61,8 +72,9 @@ class FTPConn(object):
             # print(ftp.getwelcome())
             ftp.cwd(strRemoteFolder)
             objOpenLocalFile = open('{}/{}'.format(
-                strLocalFolder, strLocalFileName, 'rb'))
+                strLocalFolder, strLocalFileName), 'rb')
             if FTPtype == 'bin':
+                print('STOR {}'.format(strRemoteFileName))
                 ftp.storbinary('STOR {}'.format(strRemoteFileName),
                                objOpenLocalFile, intBufSize)
             elif FTPtype == 'asc':
