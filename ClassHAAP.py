@@ -58,27 +58,97 @@ class HAAP():
 
     def get_engine_status(self):
         pass
-
-    def get_uptime(self):
+    
+    def get_uptime(self, command="human"):
         strVPD_Info = self.get_vpd()
-        reUpTime = re.compile(r'uptime')
-        strUpTime = reUpTime.match(strVPD_Info)
+        reUpTime = re.compile(r'Uptime\s*:\s*((\d*)d*\s*(\d{2}):(\d{2}):(\d{2}))')
+        result_reUptTime = reUpTime.search(strVPD_Info)
+        
+        if result_reUptTime is None:
+            print "get uptime failed..."
+        else:
+            #return uptime in string 
+            if command == "human":
+                return result_reUptTime.group(1)
+        
+            #return day, hr, min, sec in list
+            elif command == "list":
+                lsUpTime = []
+                #add day to list
+                try:
+                    lsUpTime.append(int(result_reUptTime.group(2)))
+                except ValueError:
+                    lsUpTime.append(0)
+                #add hr, min, sec to list
+                for i in range(3,6):
+                    lsUpTime.append(int(result_reUptTime.group(i)))
+                return lsUpTime
 
-        def list():
-            pass
-
-        def human():
-            pass
-
+    @deco_Exception
     def is_master_engine(self):
-        pass
-
+        if self._telnet_Connection:
+            strEngine_info = self._telnet_Connection.ExecuteCommand('engine')
+        else:
+            self._telnet_Connection
+            strEngine_info = self._telnet_Connection.ExecuteCommand('engine')
+        
+        #make sure we can get engine info
+        if re.search(r'>>', strEngine_info) is None:
+            print "get engine info failed..."
+        else:
+            reMaster = re.compile(r'(>>)\s*\d*\s*(\(M\))') #e.g. ">> 1  (M)" means current engine is master
+            result_reMaster = reMaster.search(strEngine_info)
+            if result_reMaster is None:
+                return False
+            else:
+                return True
+    
+    @deco_Exception
     def get_mirror_info(self):
-        pass
+        if self._telnet_Connection:
+            return self._telnet_Connection.ExecuteCommand('mirror')
+        else:
+            self._telnet_Connection
+            return self._telnet_Connection.ExecuteCommand('mirror')
 
     def get_mirror_status(self):
-        pass
-
+        strMirror = self.get_mirror_info
+        reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  #e.g." 33281(0x8201)"
+        reNoMirror = re.compile(r'No mirrors defined')
+        
+        if reMirrorID.search(strMirror):
+            error_line = ""
+            reMirrorStatus = re.compile(r'\d+\s\((\D*)\)') #e.g."2 (OK )"
+            lines = list(filter(None, strMirror.split("\n")))
+            
+            for line in lines:
+                if reMirrorID.match(line):
+                    mirror_ok = True
+                    mem_stat = reMirrorStatus.findall(line)
+                    for status in mem_stat:
+                        if status.strip() != 'OK':
+                            mirror_ok = False
+                    if not mirror_ok:
+                        error_line += line +"\n"
+            if error_line:
+                return error_line
+            else:
+                return 0  
+        else:
+            if reNoMirror.search(strMirror):
+                print "No mirrors defined"
+            else:
+                print "get mirror status failed..." 
+    
+    def get_version(self):
+        strVPD_Info = self.get_vpd()
+        reFirmware = re.compile(r'Firmware\sV\d+(.\d+)*')
+        resultFW = reFirmware.search(strVPD_Info)
+        if resultFW:
+            return resultFW.group()
+        else:
+            print "get firmware version failed..."
+    
     def backup(self, strBaseFolder):
         strOriginalFolder = os.getcwd()
         try:
