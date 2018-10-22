@@ -1,0 +1,3 @@
+vpd
+mirror
+conmgr status

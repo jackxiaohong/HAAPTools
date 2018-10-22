@@ -178,64 +178,78 @@ class HAAP():
         finally:
             os.chdir(strOriginalFolder)
 
+    def updateFW(self, strFWFile):
+        FTPConn = self._FTP_Connection
+        try:
+            time.sleep(1)
+            FTPConn.PutFile('/mbflash', './', 'fwimage', strFWFile)
+            print('okkkkkkk')
+            return True
+        except Exception as E:
+            print(__name__, E)
+            print('FW Update Failed for Engine {}...'.format(self._host))
+            return False
+
     def execute_multi_command(self, strCMDFile):
-        tnExecute = self._telnet_Connection.ExecuteCommand()
+        tn = self._telnet_Connection
         with open(strCMDFile, 'r') as f:
-            lstCommand = f.readlines()
-            for i in range(len(lstCommand)):
-                strResult = tnExecute(lstCommand[i])
+            lstCMD = f.readlines()
+            for strCMD in lstCMD:
+                strResult = tn.ExecuteCommand(strCMD)
                 if strResult:
                     print(strResult)
                 else:
-                    print('\rExecute Command "{}" Failed...'.format(
-                        lstCommand[i]))
+                    print('\rExecute Command "{}" Failed ...'.format(
+                        strCMD))
                     break
-                i += 1
-                time.sleep(0.25)
+                time.sleep(1)
 
-    def get_trace(self, intTraceLevel, strBaseFolder):
+    def get_trace(self, strBaseFolder, intTraceLevel):
         tn = self._telnet_Connection
         connFTP = self._FTP_Connection
         strOriginalFolder = os.getcwd()
 
         def _get_oddCommand(intTraceLevel):
-            oddCommand = OrderedDict()
+            oddCMD = OrderedDict()
             if intTraceLevel == 1 or intTraceLevel == 2 or intTraceLevel == 3:
-                oddCommand['Trace'] = 'ftpprep trace'
+                oddCMD['Trace'] = 'ftpprep trace'
                 if intTraceLevel == 2 or intTraceLevel == 3:
-                    oddCommand['Primary'] = 'ftpprep coredump primary all'
+                    oddCMD['Primary'] = 'ftpprep coredump primary all'
                     if intTraceLevel == 3:
-                        oddCommand['Secondary'] = 'ftpprep coredump secondary all'
-                return oddCommand
+                        oddCMD['Secondary'] = 'ftpprep coredump secondary all'
+                return oddCMD
             else:
                 print('Error: Trace Level Must Be 1,2,3')
                 return None
 
         def _get_trace_file(command, strTraceDes):
-
+            # TraceDes = Trace Description
             def _get_trace_name():
                 result = tn.ExecuteCommand(command)
                 if result:
-                    reTraceName = r'(ftp_data_\d{8}_\d{6}.txt)'
+                    reTraceName = re.compile(r'(ftp_data_\d{8}_\d{6}.txt)')
                     strTraceName = reTraceName.search(result)
                     if strTraceName:
-                        return strTraceName
+                        return strTraceName.group()
                     else:
-                        print('Generate Trace File Failed...')
+                        print('Generate Trace "{}" File Failed for {}...'.format(
+                            strTraceDes, self._host))
                         return None
                 else:
-                    print('Execute Command "{}" Failed...')
+                    print('Execute Command "{}" Failed...'.format(command))
                     return None
 
-            strTraceName = _get_trace_name(command)
+            strTraceName = _get_trace_name()
             if strTraceName:
                 try:
-                    connFTP.GetFile('mbtrace', strTraceName, '.',
-                                    'Trace_{}_{}.log'.format(strTraceDes,
-                                                             self._host))
+                    connFTP.GetFile('mbtrace', '.', strTraceName, 
+                                    'Trace_{}_{}.log'.format(
+                                    self._host, strTraceDes))
+                    print('Get Trace {} for Engine {} Completely ...'.format(
+                        '"{}"'.format(strTraceDes).ljust(10), self._host))
                     return True
                 except Exception as E:
-                    print('Get Trace File {} Failed...'.format(strTraceName))
+                    print('Get Trace File {} Failed ...'.format(strTraceName))
 
         oddCommand = _get_oddCommand(intTraceLevel)
         lstCommand = list(oddCommand.values())
@@ -249,32 +263,31 @@ class HAAP():
                 if not connFTP:
                     self._FTP_connect()
                 _get_trace_file(lstCommand[i], lstDescribe[i])
+                time.sleep(0.5)
         except Exception as E:
             print(__name__, E)
         finally:
             os.chdir(strOriginalFolder)
 
     def periodic_check(self, lstCommand, strResultFolder, strResultFile):
-        tnExecute = self._telnet_Connection.ExecuteCommand()
+        tn = self._telnet_Connection
         strOriginalFolder = os.getcwd()
+
         try:
-            os.makedirs(strResultFolder)
-        except OSError as E:
-            pass
-        os.chdir(strResultFolder)
-        try:
+            s.GotoFolder(strResultFolder)
             with open(strResultFile, 'w') as f:
-                for i in range(len(lstCommand)):
-                    strResult = tnExecute(lstCommand[i])
+                for strCMD in lstCommand:
+                    time.sleep(1)
+                    strResult = tn.ExecuteCommand(strCMD)
                     if strResult:
                         print(strResult)
                         f.write(strResult)
                     else:
-                        print('\rExecute Command "{}" Failed...'.format(
-                            lstCommand[i]))
-                        break
-                    i += 1
-                    time.sleep(0.25)
+                        strErr = '\n*** Execute Command "{}" Failed...\n'.format(
+                            strCMD)
+                        print(strErr)
+                        f.write(strErr)
+                        continue
         finally:
             os.chdir(strOriginalFolder)
 

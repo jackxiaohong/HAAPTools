@@ -1,3 +1,4 @@
+from __future__ import print_function
 from ClassConnect import *
 from collections import OrderedDict
 import re
@@ -189,9 +190,8 @@ class SANSW(object):
                     print(strPortErr.center(8), end='')
                 print()
         if self._dicPartPortError:
-            print('The Ports Errors of SAN Switch {} ...'.format(self._host))
+            print('\nThe Ports Errors of SAN Switch {} ...'.format(self._host))
             _show_porterrors()
-            print()
         else:
             print('Get Error Dict First...')
             return None
