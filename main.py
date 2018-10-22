@@ -130,18 +130,17 @@ def _get_HAAPInstance():
         oddTNInst[lstHAAP[i]] = _HAAP(lstHAAP[i])
     return oddTNInst
 
-<<<<<<< HEAD
 
 def _TraceAnalyse(strDesFolder):
     s.TraceAnalyse(oddHAAPErrorDict, strDesFolder)
-=======
-<<<<<<< HEAD
+
 
 def _periodic_check(strEngineIP):
     _HAAP(strEngineIP).periodic_check(lstCheckCMD,
-                                        strPCFolder,
-                                    'PC_{}_{}.log'.format(
-                                        _get_TimeNow(), strEngineIP))
+                                      strPCFolder,
+                                      'PC_{}_{}.log'.format(
+                                          _get_TimeNow(), strEngineIP))
+
 
 def _AutoCLI(strEngineIP, CMDFile):
     _HAAP(strEngineIP).execute_multi_command(CMDFile)
@@ -150,7 +149,6 @@ def _AutoCLI(strEngineIP, CMDFile):
 def _FWUpdate(strEngineIP, strFWFile):
     _HAAP(strEngineIP).updateFW(strFWFile)
 
->>>>>>> 2be7705cbbc1c9ad6698d2cfc524e5d4d4ee7bca
 # ################################################
 # <<<Inside Function Feild>>>
 
@@ -175,7 +173,7 @@ def main():
     elif sys.argv[1] == 'getTrace':
         strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
         for i in lstHAAP:
-            _get_HAAPInstance()[i].get_trace(strTraceFolder,intTLevel)
+            _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
 
     elif sys.argv[1] == 'analyseHAAP':
         strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow())
@@ -212,9 +210,6 @@ def main():
             print(strAutoCLIHelp)
         else:
             _FWUpdate(sys.argv[2], sys.argv[3])
-
-    elif sys.argv[1] == 'test':
-        print(len(sys.argv))
 
     elif sys.argv[1] == 'test':
         print(len(sys.argv))
