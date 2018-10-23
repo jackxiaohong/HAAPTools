@@ -179,12 +179,29 @@ def _ShowEngineInfo(strEngineIP):
     else:
         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n" 
 
-def _isIP(s):
-    p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
-    if p.match(s):
-        return True
-    else:
-        return False
+def _checkIPlst(lstIP):
+    def _isIP(s):
+        p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
+        if p.match(s):
+            return True
+        else:
+            return False
+
+    for i in lstIP:
+        if _isIP(i):
+            continue
+        else:
+            return False
+    return True
+## another way: return wrong IP(s) string ("" or "#wrongIps#")
+#     wrong_IP = ""
+#     for i in lstIP:
+#         chk_pass = _isIP(i)
+#         if chk_pass:
+#             continue
+#         else:
+#             wrong_IP += i
+#     return wrong_IP  
     
 def _isFile(s):
     if os.path.isfile(s):
