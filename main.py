@@ -16,11 +16,20 @@ except Exception:
 
 # <<<Help String Feild>>>
 strHelp = '''
-        -run            : Run Normally
-        -porterrshow    : Run, but Collect PortError only
-        -statsclear     : Clear PortError Counter on the SAN Switch
-        -zipall         : Zip All non-Zip File
-        -check          : Run Periodic Check
+
+        -porterrshow      : Show PortError collected from SAN switches
+        -clearporterrorAll: Clear ALL Ports' PortError Counter on SAN switches
+
+        -getTrace         : Save engines' trace files under TraceFolder
+        -analyseHAAP      : Analyze trace files under TraceFolder
+        -analyseTrace     : Analyze trace files under <Folder>
+        -CFGbackup        : Save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local 
+        -autoCLI          : Execute commands listed in <File> on an <Engine>
+        -pc               : Execute periodic-check commands on an <Engine>
+        -pcAll            : Execute periodic-check commands on ALL Engines
+        -updateFW         : Update an <Engine>'s firmware based on <Firmware_File>
+        -healthHAAP       : Show health status (AH) for All engines
+        -infoHAAP         : Show overall Info for All engines     
         '''
 
 strAutoCLIHelp = '''
@@ -34,6 +43,11 @@ strPCHelp = '''
 strHelpAnalyseTrace = '''
     analyseTrace <Trace_Folder>
 '''
+
+strHelpUpdateFW = '''
+    updateFW <Engine_IP> <Firmware_File>
+'''
+
 # <<<Help String Field>>>
 
 
@@ -230,7 +244,7 @@ def main():
             _get_HAAPInstance()[i].backup('{}/{}'.format(
                 strCFGFolder, _get_TimeNow()))
 
-    elif sys.argv[1] == 'getTrace': #get engines' trace files under TraceFolders based on Trace levels 
+    elif sys.argv[1] == 'getTrace': #get engines' trace files under TraceFolder based on Trace levels 
         strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
         for i in lstHAAP:
             _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
@@ -267,7 +281,7 @@ def main():
 
     elif sys.argv[1] == 'updateFW':
         if len(sys.argv) != 4:
-            print(strAutoCLIHelp)
+            print(strHelpUpdateFW)
         else:
             _FWUpdate(sys.argv[2], sys.argv[3])
 
