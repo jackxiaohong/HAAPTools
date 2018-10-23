@@ -34,18 +34,18 @@ strPCHelp = '''
 strHelpAnalyseTrace = '''
     analyseTrace <Trace_Folder>
 '''
-# <<<Help String Feild>>>
+# <<<Help String Field>>>
 
 
-# <<<Read Config File Feild>>>
+# <<<Read Config File Field>>>
 objCFG = cp.ConfigParser(allow_no_value=True)
 objCFG.read('Conf.ini')
-# <<<Read Config File Feild>>>
+# <<<Read Config File Field>>>
 
 
 # <<<SAN Switch Config>>>
 strSWUser = objCFG.get('SWSetting', 'username')
-intSWSSHPort = objCFG.get('SWSetting', 'port')
+intSWSSHPort = int(objCFG.get('SWSetting', 'port'))
 
 oddSWPort = Odd()
 for i in objCFG.items('SWPorts'):
