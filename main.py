@@ -149,6 +149,12 @@ def _AutoCLI(strEngineIP, CMDFile):
 def _FWUpdate(strEngineIP, strFWFile):
     _HAAP(strEngineIP).updateFW(strFWFile)
     
+def _EngineHealth(strEngineIP):
+    alert = _HAAP(strEngineIP).get_engine_health()
+    if alert:
+        print "AH"
+    else:
+        print "OK"
 
 def _isIP(s):
     p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
@@ -227,7 +233,10 @@ def main():
 
     elif sys.argv[1] == 'test':
         print(len(sys.argv))
-        
+    
+    elif sys.argv[1] == 'healthHAAP':
+        for i in lstHAAP: 
+            _EngineHealth(i)     
     else:
         print(strHelp)
 
