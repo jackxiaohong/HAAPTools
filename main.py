@@ -130,18 +130,18 @@ def _get_HAAPInstance():
         oddTNInst[lstHAAP[i]] = _HAAP(lstHAAP[i])
     return oddTNInst
 
-
+#analyze trace files under DesFolder, results saved in .xsl files
 def _TraceAnalyse(strDesFolder):
     s.TraceAnalyse(oddHAAPErrorDict, strDesFolder)
 
-
+#execute periodic-check commands (defined in Config.ini), print and save results in PCFolder
 def _periodic_check(strEngineIP):
     _HAAP(strEngineIP).periodic_check(lstCheckCMD,
                                       strPCFolder,
                                       'PC_{}_{}.log'.format(
                                           _get_TimeNow(), strEngineIP))
 
-
+#execute cmds in file and print the results
 def _AutoCLI(strEngineIP, CMDFile):
     _HAAP(strEngineIP).execute_multi_command(CMDFile)
 
@@ -225,12 +225,12 @@ def main():
         for i in lstSW:
             _get_SWInstance()[i].clear_porterr_All()
 
-    elif sys.argv[1] == 'CFGbackup':
+    elif sys.argv[1] == 'CFGbackup':  #save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local
         for i in lstHAAP:
             _get_HAAPInstance()[i].backup('{}/{}'.format(
                 strCFGFolder, _get_TimeNow()))
 
-    elif sys.argv[1] == 'getTrace':
+    elif sys.argv[1] == 'getTrace': #get engines' trace files under TraceFolders based on Trace levels 
         strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
         for i in lstHAAP:
             _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
@@ -242,10 +242,10 @@ def main():
         _TraceAnalyse(strTraceFolder)
 
     elif sys.argv[1] == 'analyseTrace':
-        if len(sys.argv) != 2:
+        if len(sys.argv) != 3:
             print(strHelpAnalyseTrace)
-        elif isinstance(sys.argv[1], str):
-            _TraceAnalyse(sys.argv[1])
+        elif isinstance(sys.argv[2], str):
+            _TraceAnalyse(sys.argv[2])
         else:
             print('Please Provide Trace Folder To Analyse ...')
 
