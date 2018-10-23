@@ -152,9 +152,12 @@ def _FWUpdate(strEngineIP, strFWFile):
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
     if alert:
-        print "AH"
+        print strEngineIP+":"+"AH"
     else:
-        print "OK"
+        print strEngineIP+":"+"OK"
+        
+def _EngineInfo(strEngineIP):
+    pass
 
 def _isIP(s):
     p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
@@ -236,7 +239,10 @@ def main():
     
     elif sys.argv[1] == 'healthHAAP':
         for i in lstHAAP: 
-            _EngineHealth(i)     
+            _EngineHealth(i)    
+    elif sys.argv[1] == 'infoHAAP':
+        for i in lstHAAP:
+            _EngineInfo(i)        
     else:
         print(strHelp)
 
