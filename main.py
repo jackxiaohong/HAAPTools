@@ -148,6 +148,20 @@ def _AutoCLI(strEngineIP, CMDFile):
 
 def _FWUpdate(strEngineIP, strFWFile):
     _HAAP(strEngineIP).updateFW(strFWFile)
+    
+
+def _isIP(s):
+    p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
+    if p.match(s):
+        return True
+    else:
+        return False
+    
+def _isFile(s):
+    if os.path.isfile(s):
+        return True
+    else: 
+        return False
 
 # ################################################
 # <<<Inside Function Feild>>>
@@ -213,7 +227,7 @@ def main():
 
     elif sys.argv[1] == 'test':
         print(len(sys.argv))
-
+        
     else:
         print(strHelp)
 
