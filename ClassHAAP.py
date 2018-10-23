@@ -292,11 +292,10 @@ class HAAP():
 
 
 if __name__ == '__main__':
-    aa = HAAP('172.16.254.71', 23, '.com', 21)
+    aa = HAAP('172.16.254.72', 23, '.com', 21)
     print(aa.get_vpd())
-    print(os.getcwd())
-    aa.backup('abc2/wdswe/')
-    print(os.getcwd())
+    print(aa.get_uptime('list'))
+
 
     #w = ClassConnect.FTPConn('172.16.254.71', 21, 'adminftp', '.com')
 
