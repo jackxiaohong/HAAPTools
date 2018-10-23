@@ -156,21 +156,28 @@ def _EngineHealth(strEngineIP):
     else:
         print strEngineIP+":"+"OK"
         
-def _EngineInfo(strEngineIP):
+def _ShowEngineInfo(strEngineIP):
     engineIns = _HAAP(strEngineIP)
-    print "Engine_IP:", strEngineIP
-    print "Firmware_Version:", engineIns.get_version()
-    print "Uptime:", engineIns.get_uptime()
-    if engineIns.is_master_engine():
-        print "Master?: Yes"
+    print "{:<17s}:".format("Engine IP"), strEngineIP
+    print "{:<17s}:".format("Status"), engineIns.get_engine_status()
+    print "{:<17s}:".format("Firmware version"), engineIns.get_version()
+    print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
+    
+    if engineIns.get_engine_health():
+        print "{:<17s}: AH".format("Alert Halt")
     else:
-        print "Master?: No"
+        print "{:<17s}: None".format("Alert Halt")
+    
+    if engineIns.is_master_engine():
+        print "{:<17s}: Yes".format("Master")
+    else:
+        print "{:<17s}: No".format("Master")
+    
     mirror_status = engineIns.get_mirror_status()
     if not mirror_status:
-        print "Mirror Status: All OK"
+        print "{:<17s}: All OK\n".format("Mirror status")
     else:
-        print "Mirror Status:\n", mirror_status 
-    print "\n"
+        print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n" 
 
 def _isIP(s):
     p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
@@ -256,7 +263,7 @@ def main():
     
     elif sys.argv[1] == 'infoHAAP':
         for i in lstHAAP:
-            _EngineInfo(i)        
+            _ShowEngineInfo(i)    
     else:
         print(strHelp)
 
