@@ -73,7 +73,7 @@ class HAAP():
         reAL = re.compile(r'Alert:\s(\S*)')
         result_reAL = reAL.search(strVPD_Info)
         if result_reAL is None:
-            print "get engine health status failed..."
+            print("get engine health status failed...")
         else:
             if result_reAL.group(1) == "None":
                 return 0
@@ -161,7 +161,7 @@ class HAAP():
             if reNoMirror.search(strMirror):
                 return "No mirrors defined"
             else:
-                return "get mirror status failed..."
+                print("get mirror status failed...")
 
     def get_version(self):
         strVPD_Info = self.get_vpd()
