@@ -17,7 +17,7 @@ except Exception:
 
 # <<<Help String Feild>>>
 strHelp = '''
-        Commands            Description
+        Command             Description
         
         -porterrshow      : Show PortError collected from SAN switches
         -clearporterrorAll: Clear ALL Ports' PortError Counter on SAN switches
@@ -330,9 +330,6 @@ def main():
             print('File Not exists. Please Provide Correct File...')
         else:
             _FWUpdate(sys.argv[2], sys.argv[3])
-
-    elif sys.argv[1] == 'test':
-        print(len(sys.argv))
     
     elif sys.argv[1] == 'healthHAAP':
         if len(sys.argv) != 2:
@@ -351,6 +348,10 @@ def main():
         else:
             for i in lstHAAP:
                 _ShowEngineInfo(i)
+    
+    elif sys.argv[1] == 'test':
+        print(len(sys.argv))
+    
     else:
         print(strHelp)
 
