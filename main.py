@@ -172,9 +172,9 @@ def _FWUpdate(strEngineIP, strFWFile):
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
     if alert:
-        print strEngineIP+":"+"AH"
+        print strEngineIP+": "+"AH"
     else:
-        print strEngineIP+":"+"OK"
+        print strEngineIP+": "+"OK"
         
 def _ShowEngineInfo(strEngineIP):
     engineIns = _HAAP(strEngineIP)
@@ -194,7 +194,7 @@ def _ShowEngineInfo(strEngineIP):
         print "{:<17s}: No".format("Master")
     
     mirror_status = engineIns.get_mirror_status()
-    if not mirror_status:
+    if mirror_status == 0:
         print "{:<17s}: All OK\n".format("Mirror status")
     else:
         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n" 

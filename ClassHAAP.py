@@ -159,9 +159,9 @@ class HAAP():
                 return 0
         else:
             if reNoMirror.search(strMirror):
-                print("No mirrors defined")
+                return "No mirrors defined"
             else:
-                print("get mirror status failed...")
+                return "get mirror status failed..."
 
     def get_version(self):
         strVPD_Info = self.get_vpd()
