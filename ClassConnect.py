@@ -74,7 +74,6 @@ class FTPConn(object):
             objOpenLocalFile = open('{}/{}'.format(
                 strLocalFolder, strLocalFileName), 'rb')
             if FTPtype == 'bin':
-                print('STOR {}'.format(strRemoteFileName))
                 ftp.storbinary('STOR {}'.format(strRemoteFileName),
                                objOpenLocalFile, intBufSize)
             elif FTPtype == 'asc':
