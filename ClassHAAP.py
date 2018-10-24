@@ -67,6 +67,18 @@ class HAAP():
             return "ONLINE"
         else:
             return "offline"
+    
+    def get_engine_health(self):
+        strVPD_Info = self.get_vpd()
+        reAL = re.compile(r'Alert:\s(\S*)')
+        result_reAL = reAL.search(strVPD_Info)
+        if result_reAL is None:
+            print "get engine health status failed..."
+        else:
+            if result_reAL.group(1) == "None":
+                return 0
+            else:
+                return 1
 
     def get_uptime(self, command="human"):
         strVPD_Info = self.get_vpd()

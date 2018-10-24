@@ -24,7 +24,7 @@ def GotoFolder(strFolder):
         return False
 
 
-def TraceAnalyse(self, oddHAAPErrorDict, strTraceFolder):
+def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):
     import re
     import xlwt
 
