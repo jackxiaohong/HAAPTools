@@ -150,61 +150,72 @@ def _get_HAAPInstance():
         oddTNInst[lstHAAP[i]] = _HAAP(lstHAAP[i])
     return oddTNInst
 
-#analyze trace files under DesFolder, results saved in .xsl files
+# analyze trace files under DesFolder, results saved in .xsl files
+
+
 def _TraceAnalyse(strDesFolder):
     s.TraceAnalyse(oddHAAPErrorDict, strDesFolder)
 
-#execute periodic-check commands (defined in Config.ini), print and save results in PCFolder
+# execute periodic-check commands (defined in Config.ini), print and save results in PCFolder
+
+
 def _periodic_check(strEngineIP):
     _HAAP(strEngineIP).periodic_check(lstCheckCMD,
                                       strPCFolder,
                                       'PC_{}_{}.log'.format(
                                           _get_TimeNow(), strEngineIP))
 
-#execute cmds in file and print the results
+# execute cmds in file and print the results
+
+
 def _AutoCLI(strEngineIP, CMDFile):
     _HAAP(strEngineIP).execute_multi_command(CMDFile)
 
 
 def _FWUpdate(strEngineIP, strFWFile):
     _HAAP(strEngineIP).updateFW(strFWFile)
-    
+
+
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
     if alert:
-        print strEngineIP+":"+"AH"
+        print(strEngineIP + ":" + "AH")
     else:
-        print strEngineIP+":"+"OK"
-        
+        print(strEngineIP + ":" + "OK")
+
+
 def _ShowEngineInfo(strEngineIP):
     engineIns = _HAAP(strEngineIP)
-    print "{:<17s}:".format("Engine IP"), strEngineIP
-    print "{:<17s}:".format("Status"), engineIns.get_engine_status()
-    print "{:<17s}:".format("Firmware version"), engineIns.get_version()
-    print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
-    
+    print("{:<17s}:".format("Engine IP"), strEngineIP)
+    print("{:<17s}:".format("Status"), engineIns.get_engine_status())
+    print("{:<17s}:".format("Firmware version"), engineIns.get_version())
+    print("{:<17s}:".format("Uptime"), engineIns.get_uptime())
+
     if engineIns.get_engine_health():
-        print "{:<17s}: AH".format("Alert Halt")
+        print("{:<17s}: AH".format("Alert Halt"))
     else:
-        print "{:<17s}: None".format("Alert Halt")
-    
+        print("{:<17s}: None".format("Alert Halt"))
+
     if engineIns.is_master_engine():
-        print "{:<17s}: Yes".format("Master")
+        print("{:<17s}: Yes".format("Master"))
     else:
-        print "{:<17s}: No".format("Master")
-    
+        print("{:<17s}: No".format("Master"))
+
     mirror_status = engineIns.get_mirror_status()
     if not mirror_status:
-        print "{:<17s}: All OK\n".format("Mirror status")
+        print("{:<17s}: All OK\n".format("Mirror status"))
     else:
-        print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n" 
+        print("{:<17s}: \n".format("Mirror status"), mirror_status, "\n")
+
 
 def _isIP(s):
-    p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
+    p = re.compile(
+        '^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
     if p.match(s):
         return True
     else:
         return False
+
 
 def _checkIPlst(lstIP):
     for i in lstIP:
@@ -213,7 +224,7 @@ def _checkIPlst(lstIP):
         else:
             return False
     return True
-## another way: return wrong IP(s) string ("" or "#wrongIps#")
+# another way: return wrong IP(s) string ("" or "#wrongIps#")
 #     wrong_IP = ""
 #     for i in lstIP:
 #         chk_pass = _isIP(i)
@@ -221,12 +232,13 @@ def _checkIPlst(lstIP):
 #             continue
 #         else:
 #             wrong_IP += i
-#     return wrong_IP  
-    
+#     return wrong_IP
+
+
 def _isFile(s):
     if os.path.isfile(s):
         return True
-    else: 
+    else:
         return False
 
 # ################################################
@@ -239,8 +251,8 @@ def main():
 
     elif sys.argv[1] == 'porterrshow':
         if len(sys.argv) != 2:
-            print strHelpSingleCommand.format('porterrshow')
-        elif not _checkIPlst(lstSW):  
+            print(strHelpSingleCommand.format('porterrshow'))
+        elif not _checkIPlst(lstSW):
             print('IP error. Please check Switch IPs defined in Conf.ini')
         else:
             for i in lstSW:
@@ -248,16 +260,17 @@ def main():
 
     elif sys.argv[1] == 'clearporterrorAll':
         if len(sys.argv) != 2:
-            print strHelpSingleCommand.format('clearporterrorAll')
+            print(strHelpSingleCommand.format('clearporterrorAll'))
         elif not _checkIPlst(lstSW):
             print('IP error. Please check Switch IPs defined in Conf.ini')
         else:
             for i in lstSW:
                 _get_SWInstance()[i].clear_porterr_All()
 
-    elif sys.argv[1] == 'CFGbackup':  #save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local
+    # save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local
+    elif sys.argv[1] == 'CFGbackup':
         if len(sys.argv) != 2:
-            print strHelpSingleCommand.format('CFGbackup')
+            print(strHelpSingleCommand.format('CFGbackup'))
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
@@ -265,11 +278,12 @@ def main():
                 _get_HAAPInstance()[i].backup('{}/{}'.format(
                     strCFGFolder, _get_TimeNow()))
 
-    elif sys.argv[1] == 'getTrace': #get engines' trace files under TraceFolder based on Trace levels 
+    # get engines' trace files under TraceFolder based on Trace levels
+    elif sys.argv[1] == 'getTrace':
         if len(sys.argv) != 2:
-            print strHelpSingleCommand.format('getTrace')
+            print(strHelpSingleCommand.format('getTrace'))
         elif not _checkIPlst(lstHAAP):
-            print('IP error. Please check Engine IPs defined in Conf.ini') 
+            print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
             strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
             for i in lstHAAP:
@@ -277,9 +291,9 @@ def main():
 
     elif sys.argv[1] == 'analyseHAAP':
         if len(sys.argv) != 2:
-            print strHelpSingleCommand.format('analyseHAAP')
+            print(strHelpSingleCommand.format('analyseHAAP'))
         elif not _checkIPlst(lstHAAP):
-            print('IP error. Please check Engine IPs defined in Conf.ini') 
+            print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
             strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow())
             for i in lstHAAP:
@@ -314,9 +328,9 @@ def main():
 
     elif sys.argv[1] == 'pcALL':
         if len(sys.argv) != 2:
-            print strHelpSingleCommand.format('pcALL')
+            print(strHelpSingleCommand.format('pcALL'))
         elif not _checkIPlst(lstHAAP):
-            print('IP error. Please check Engine IPs defined in Conf.ini') 
+            print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
             for i in lstHAAP:
                 _periodic_check(i)
@@ -330,28 +344,28 @@ def main():
             print('File Not exists. Please Provide Correct File...')
         else:
             _FWUpdate(sys.argv[2], sys.argv[3])
-    
+
     elif sys.argv[1] == 'healthHAAP':
         if len(sys.argv) != 2:
-            print strHelpSingleCommand.format('healthHAAP')
+            print(strHelpSingleCommand.format('healthHAAP'))
         elif not _checkIPlst(lstHAAP):
-            print('IP error. Please check Engine IPs defined in Conf.ini')         
+            print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            for i in lstHAAP: 
+            for i in lstHAAP:
                 _EngineHealth(i)
-    
+
     elif sys.argv[1] == 'infoHAAP':
         if len(sys.argv) != 2:
-            print strHelpSingleCommand.format('healthHAAP')
+            print(strHelpSingleCommand.format('healthHAAP'))
         elif not _checkIPlst(lstHAAP):
-            print('IP error. Please check Engine IPs defined in Conf.ini')     
+            print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
             for i in lstHAAP:
                 _ShowEngineInfo(i)
-    
+
     elif sys.argv[1] == 'test':
         print(len(sys.argv))
-    
+
     else:
         print(strHelp)
 

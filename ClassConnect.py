@@ -231,6 +231,7 @@ class HAAPConn(object):
     def ExecuteCommand(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")
+        # CLI = self._strCLIPrompt
         CLI_Conflict = self._strCLIConflict.encode(encoding="utf-8")
 
         def GetResult():
@@ -244,12 +245,12 @@ class HAAPConn(object):
                 return None
 
         def FindCLI():
-            self._Connection.write('\r')
+            self._Connection.write(b'\r')
             strEnterOutput = self._Connection.read_until(CLI, timeout=1)
 
             if CLI in strEnterOutput:
                 return GetResult()
-            elif 'HA-AP'.encode(encoding="utf-8") in strEnterOutput:
+            elif 'HA-AP' in strEnterOutput:
                 self._Connection.write('7')
                 str7Output = self._Connection.read_until(CLI, timeout=1)
                 if CLI in str7Output:

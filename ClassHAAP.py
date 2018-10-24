@@ -7,6 +7,20 @@ import time
 import Source as s
 
 
+def deco_GotoFolder(func):
+    def _deco(strDesFolder, strOriFolder):
+        def __deco(self, *args, **kwargs):
+            s.GotoFolder(strDesFolder)
+            try:
+                return func(self, *args, **kwargs)
+            except Exception as E:
+                print(__name__, E)
+            finally:
+                os.chdir(strOriFolder)
+        return __deco
+    return _deco
+
+
 def deco_Exception(func):
     def _deco(self, *args, **kwargs):
         try:
@@ -67,13 +81,13 @@ class HAAP():
             return "ONLINE"
         else:
             return "offline"
-    
+
     def get_engine_health(self):
         strVPD_Info = self.get_vpd()
         reAL = re.compile(r'Alert:\s(\S*)')
         result_reAL = reAL.search(strVPD_Info)
         if result_reAL is None:
-            print "get engine health status failed..."
+            print('get engine health status failed...')
         else:
             if result_reAL.group(1) == "None":
                 return 0
@@ -274,11 +288,13 @@ class HAAP():
                 if not connFTP:
                     self._FTP_connect()
                 _get_trace_file(lstCommand[i], lstDescribe[i])
+                print('get trace of ' + self._host + '@' + os.getcwd())
                 time.sleep(0.5)
         except Exception as E:
             print(__name__, E)
         finally:
             os.chdir(strOriginalFolder)
+            print('get trace complately ' + self._host + '@' + os.getcwd())
 
     def periodic_check(self, lstCommand, strResultFolder, strResultFile):
         tn = self._telnet_Connection
@@ -307,7 +323,6 @@ if __name__ == '__main__':
     aa = HAAP('172.16.254.72', 23, '.com', 21)
     print(aa.get_vpd())
     print(aa.get_uptime('list'))
-
 
     #w = ClassConnect.FTPConn('172.16.254.71', 21, 'adminftp', '.com')
 
