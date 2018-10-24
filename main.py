@@ -8,6 +8,7 @@ import sys
 import datetime
 import getpass
 import pprint
+import re
 
 try:
     import configparser as cp
@@ -16,7 +17,8 @@ except Exception:
 
 # <<<Help String Feild>>>
 strHelp = '''
-
+        Commands            Description
+        
         -porterrshow      : Show PortError collected from SAN switches
         -clearporterrorAll: Clear ALL Ports' PortError Counter on SAN switches
 
@@ -46,6 +48,10 @@ strHelpAnalyseTrace = '''
 
 strHelpUpdateFW = '''
     updateFW <Engine_IP> <Firmware_File>
+'''
+
+strHelpSingleCommand = '''
+    {}
 '''
 
 # <<<Help String Field>>>
@@ -193,14 +199,14 @@ def _ShowEngineInfo(strEngineIP):
     else:
         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n" 
 
-def _checkIPlst(lstIP):
-    def _isIP(s):
-        p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
-        if p.match(s):
-            return True
-        else:
-            return False
+def _isIP(s):
+    p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
+    if p.match(s):
+        return True
+    else:
+        return False
 
+def _checkIPlst(lstIP):
     for i in lstIP:
         if _isIP(i):
             continue
@@ -224,7 +230,7 @@ def _isFile(s):
         return False
 
 # ################################################
-# <<<Inside Function Feild>>>
+# <<<Inside Function Field>>>
 
 
 def main():
@@ -232,28 +238,53 @@ def main():
         print(strHelp)
 
     elif sys.argv[1] == 'porterrshow':
-        for i in lstSW:
-            _get_SWInstance()[i].show_porterrors()
+        if len(sys.argv) != 2:
+            print strHelpSingleCommand.format('porterrshow')
+        elif not _checkIPlst(lstSW):  
+            print('IP error. Please check Switch IPs defined in Conf.ini')
+        else:
+            for i in lstSW:
+                _get_SWInstance()[i].show_porterrors()
 
     elif sys.argv[1] == 'clearporterrorAll':
-        for i in lstSW:
-            _get_SWInstance()[i].clear_porterr_All()
+        if len(sys.argv) != 2:
+            print strHelpSingleCommand.format('clearporterrorAll')
+        elif not _checkIPlst(lstSW):
+            print('IP error. Please check Switch IPs defined in Conf.ini')
+        else:
+            for i in lstSW:
+                _get_SWInstance()[i].clear_porterr_All()
 
     elif sys.argv[1] == 'CFGbackup':  #save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local
-        for i in lstHAAP:
-            _get_HAAPInstance()[i].backup('{}/{}'.format(
-                strCFGFolder, _get_TimeNow()))
+        if len(sys.argv) != 2:
+            print strHelpSingleCommand.format('CFGbackup')
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini')
+        else:
+            for i in lstHAAP:
+                _get_HAAPInstance()[i].backup('{}/{}'.format(
+                    strCFGFolder, _get_TimeNow()))
 
     elif sys.argv[1] == 'getTrace': #get engines' trace files under TraceFolder based on Trace levels 
-        strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
-        for i in lstHAAP:
-            _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
+        if len(sys.argv) != 2:
+            print strHelpSingleCommand.format('getTrace')
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini') 
+        else:
+            strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
+            for i in lstHAAP:
+                _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
 
     elif sys.argv[1] == 'analyseHAAP':
-        strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow())
-        for i in lstHAAP:
-            _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
-        _TraceAnalyse(strTraceFolder)
+        if len(sys.argv) != 2:
+            print strHelpSingleCommand.format('analyseHAAP')
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini') 
+        else:
+            strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow())
+            for i in lstHAAP:
+                _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
+            _TraceAnalyse(strTraceFolder)
 
     elif sys.argv[1] == 'analyseTrace':
         if len(sys.argv) != 3:
@@ -266,22 +297,37 @@ def main():
     elif sys.argv[1] == 'autoCLI':
         if len(sys.argv) != 4:
             print(strAutoCLIHelp)
+        elif not _isIP(sys.argv[2]):
+            print('IP Format Wrong. Please Provide Correct Engine IP...')
+        elif not _isFile(sys.argv[3]):
+            print('File Not Exists. Please Provide Correct File...')
         else:
             _HAAP(sys.argv[2]).execute_multi_command(sys.argv[3])
 
     elif sys.argv[1] == 'pc':
         if len(sys.argv) != 3:
             print(strPCHelp)
+        elif not _isIP(sys.argv[2]):
+            print('IP Format Wrong. Please Provide Correct Engine IP...')
         else:
             _periodic_check(sys.argv[2])
 
     elif sys.argv[1] == 'pcALL':
-        for i in lstHAAP:
-            _periodic_check(i)
+        if len(sys.argv) != 2:
+            print strHelpSingleCommand.format('pcALL')
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini') 
+        else:
+            for i in lstHAAP:
+                _periodic_check(i)
 
     elif sys.argv[1] == 'updateFW':
         if len(sys.argv) != 4:
             print(strHelpUpdateFW)
+        elif not _isIP(sys.argv[2]):
+            print('IP format wrong. Please Provide Correct Engine IP...')
+        elif not _isFile(sys.argv[3]):
+            print('File Not exists. Please Provide Correct File...')
         else:
             _FWUpdate(sys.argv[2], sys.argv[3])
 
@@ -289,12 +335,22 @@ def main():
         print(len(sys.argv))
     
     elif sys.argv[1] == 'healthHAAP':
-        for i in lstHAAP: 
-            _EngineHealth(i)    
+        if len(sys.argv) != 2:
+            print strHelpSingleCommand.format('healthHAAP')
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini')         
+        else:
+            for i in lstHAAP: 
+                _EngineHealth(i)
     
     elif sys.argv[1] == 'infoHAAP':
-        for i in lstHAAP:
-            _ShowEngineInfo(i)    
+        if len(sys.argv) != 2:
+            print strHelpSingleCommand.format('healthHAAP')
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini')     
+        else:
+            for i in lstHAAP:
+                _ShowEngineInfo(i)
     else:
         print(strHelp)
 
