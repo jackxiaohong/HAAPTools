@@ -7,10 +7,10 @@ import time
 import Source as s
 
 
-def deco_GotoFolder(func):
-    def _deco(strDesFolder, strOriFolder):
+strOriFolder = os.getcwd()
+def deco_GotoFolder(strOriFolder):
+    def _deco(func):
         def __deco(self, *args, **kwargs):
-            s.GotoFolder(strDesFolder)
             try:
                 return func(self, *args, **kwargs)
             except Exception as E:
@@ -186,23 +186,17 @@ class HAAP():
         else:
             print("get firmware version failed...")
 
+    @deco_GotoFolder(strOriFolder)
     def backup(self, strBaseFolder):
-        strOriginalFolder = os.getcwd()
-        try:
-            s.GotoFolder(strBaseFolder)
-            connFTP = self._FTP_Connection
-            lstCFGFile = ['automap.cfg', 'cm.cfg', 'san.cfg']
-            for strCFGFile in lstCFGFile:
-                connFTP.GetFile('bin_conf', '.', strCFGFile,
-                                'backup_{}_{}'.format(self._host, strCFGFile))
-                print('{} Backup Completely for {}'.format(
-                    strCFGFile.ljust(12), self._host))
-                time.sleep(1)
-        except Exception as E:
-            print(__name__, E)
-            print('Config Backup Failed for {}'.format(self._host))
-        finally:
-            os.chdir(strOriginalFolder)
+        s.GotoFolder(strBaseFolder)
+        connFTP = self._FTP_Connection
+        lstCFGFile = ['automap.cfg', 'cm.cfg', 'san.cfg']
+        for strCFGFile in lstCFGFile:
+            connFTP.GetFile('bin_conf', '.', strCFGFile,
+                            'backup_{}_{}'.format(self._host, strCFGFile))
+            print('{} Backup Completely for {}'.format(
+                strCFGFile.ljust(12), self._host))
+            time.sleep(0.25)
 
     def updateFW(self, strFWFile):
         FTPConn = self._FTP_Connection
