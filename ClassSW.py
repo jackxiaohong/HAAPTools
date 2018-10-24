@@ -65,7 +65,7 @@ class SANSW(object):
 
         def _putToDict():
             dicPort_Error = OrderedDict()
-            lstPortErrLines = self._strAllPortError.split('\n')
+            lstPortErrLines = str(self._strAllPortError).split('\n')
             for intPortNum in self._allSWPort:
                 lstErrInfo = _getErrorAsList(intPortNum, lstPortErrLines)
                 dicPort_Error[intPortNum] = lstErrInfo

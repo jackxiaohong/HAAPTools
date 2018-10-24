@@ -45,7 +45,7 @@ objCFG.read('Conf.ini')
 
 # <<<SAN Switch Config>>>
 strSWUser = objCFG.get('SWSetting', 'username')
-intSWSSHPort = objCFG.get('SWSetting', 'port')
+intSWSSHPort = int(objCFG.get('SWSetting', 'port'))
 
 oddSWPort = Odd()
 for i in objCFG.items('SWPorts'):
