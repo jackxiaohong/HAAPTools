@@ -274,9 +274,9 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
+            strBackupFolder = '{}/{}'.format(strCFGFolder, _get_TimeNow())
             for i in lstHAAP:
-                _get_HAAPInstance()[i].backup('{}/{}'.format(
-                    strCFGFolder, _get_TimeNow()))
+                _get_HAAPInstance()[i].backup(strBackupFolder)
 
     # get engines' trace files under TraceFolder based on Trace levels
     elif sys.argv[1] == 'getTrace':

@@ -3,6 +3,8 @@ import os
 import datetime
 import getpass
 import ClassSW as sw
+import sys
+import inspect
 
 # lstCommand = 'conmgr status'
 
@@ -12,8 +14,7 @@ import ClassSW as sw
 # print(lstCommand)
 
 # if None:
-# 	print('aa')
-
+#   print('aa')
 
 
 # def P(x, y):
@@ -44,7 +45,7 @@ import ClassSW as sw
 # print(aa.match(vpd).groups())
 
 
-#####------------Range list
+# ------------Range list
 
 # lstCommand = list('goodman')
 
@@ -54,7 +55,7 @@ import ClassSW as sw
 #     i += 1
 #     print(i)
 
-####--------------File absolute dir
+# --------------File absolute dir
 # def mkdir(strResultFolder):
 #     strOldDir = os.getcwd()
 #     try:
@@ -65,7 +66,7 @@ import ClassSW as sw
 #     os.chdir(strOldDir)
 
 
-#####-------------import in the function
+# -------------import in the function
 
 # def p():
 #     import pprint
@@ -74,25 +75,81 @@ import ClassSW as sw
 # def strTime():
 #     strTimeNow = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 #     return 'Trace_' + strTimeNow
-    # print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7])
+# print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-7])
 
 
-### get trace name...
+# get trace name...
 
-result = '''
->ftpprep trace
+# result = '''
+# >ftpprep trace
 
-ftp_data_20181021_114517.txt has been created in the mbtrace directory
-'''
-def gt(result):
-    reTraceName = re.compile(r'(ftp_data_\d{8}_\d{6}.txt)')
-    strTraceName = reTraceName.search(result)
-    if strTraceName:
-        print(strTraceName.group())
-        return strTraceName
+# ftp_data_20181021_114517.txt has been created in the mbtrace directory
+# '''
+# def gt(result):
+#     reTraceName = re.compile(r'(ftp_data_\d{8}_\d{6}.txt)')
+#     strTraceName = reTraceName.search(result)
+#     if strTraceName:
+#         print(strTraceName.group())
+#         return strTraceName
+
+# raise...
+
+# def get_current_function_name():
+#     return inspect.stack()[1][3]
+
+# def deco_Exception(func):
+#     def _deco(self, *args, **kwargs):
+#         try:
+#             return func(self, *args, **kwargs)
+#         except Exception as E:
+#             print(self.__class__.__name__,
+#                 sys._getframe().f_code.co_name,
+#                       func.__name__,
+#                       get_current_function_name(),
+#                       E)
+#     return _deco
+
+# @deco_Exception
+# def t(y):
+#     def r(x):
+#         if x == 1:
+#             print(x)
+#         else:
+#             raise ValueError, "{} Cuo le....".format(get_current_function_name())
+#     r(y)
+
+### For ...
+
+def p(x):
+    print(x)
 
 if __name__ == '__main__':
     # print(strTime())
     # sw.SANSW('172.16.254.75', 22, strSWUser, strSWPWD, lstSWPorts[i])
-    gt(result)
-    
+    # gt(result)
+    # raise_test(1)
+    # def x(w):
+    #     t(w)
+
+    # x('x')
+
+    # def _ShowErrors(strError,
+    #  funcName=sys._getframe().f_code.co_name,
+    #  ):
+    #     return str('''
+    # Errors:
+    #     Class Name :   {}
+    #     Function name: {}
+    #     Error Message: {}
+    #         '''.format(self.__class__.__name__,
+    #             funcName,
+    #             strError))
+    # print(_ShowErrors('wps'))
+
+
+    # def i():
+    #     def showFunc(x=sys._getframe().f_code.co_name):
+    #         print(x)
+    #     showFunc()
+
+    # i()

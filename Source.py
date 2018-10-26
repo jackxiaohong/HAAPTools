@@ -1,5 +1,17 @@
 # coding:utf-8
 import os
+import sys
+
+
+def ShowErrors(strError,
+               className,
+               funcName=sys._getframe().f_code.co_name):
+    return str('''
+    Errors:
+        Class Name :   {}
+        Function name: {}
+        Error Message: {}
+            '''.format(className, funcName, strError))
 
 
 def GotoFolder(strFolder):
