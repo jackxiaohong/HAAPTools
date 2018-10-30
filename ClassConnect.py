@@ -90,6 +90,11 @@ class FTPConn(object):
                 _putfile()
             except Exception:
                 print('Put File Failed...')
+    
+    def close(self):
+        if self._Connection:
+            self._Connection.quit()
+            self._Connection = None
 
 
 class SSHConn(object):
