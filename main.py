@@ -199,20 +199,27 @@ def _EngineHealth(strEngineIP):
 #     else:
 #         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n"
 def _ShowEngineInfo():
-    lstDesc = ['Engine IP', 'Uptime', 'AlertHalt', 'Firmware Ver.',
-               'Status', 'Master']
     dictEngines = _get_HAAPInstance()
-    for strDesc in lstDesc:
-        print(strDesc.center(13), end='')
-    for i in lstHAAP:
-        for s in dictEngines[i].get_overalInfo_tuple():
-            print(strDesc.center(13), end='')
-    
-    for i in lstHAAP:
-        mirror_status = dictEngines[i].get_mirror_status()
-        if mirror_status != 0:
-            print i,":"
-            print mirror_status
+    def general_info():
+        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version','Status', 'Master', 'Mirror')
+        for strDesc in lstDesc:
+            print(strDesc.center(12)),
+        print
+        for i in lstHAAP:
+            for s in dictEngines[i].infoEngine_lst():
+                print(s.center(12)),
+            print 
+    def mirror_info(): #needs optimization    
+        print "\nMirror Error"
+        for i in lstHAAP:
+            print i,":",
+            mirror_status = dictEngines[i].get_mirror_status()
+            if mirror_status != 0 and mirror_status != -1:
+                print mirror_status
+            else:
+                print "None"
+    general_info()
+    mirror_info()
             
 
 def _isIP(s):
@@ -362,8 +369,7 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')     
         else:
-            for i in lstHAAP:
-                _ShowEngineInfo(i)
+            _ShowEngineInfo()
     
     elif sys.argv[1] == 'test':
         print(len(sys.argv))
