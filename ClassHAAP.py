@@ -76,9 +76,9 @@ class HAAP():
             print("get engine health status failed...")
         else:
             if result_reAL.group(1) == "None":
-                return 0
+                return 0 # 0 means engine is healthy
             else:
-                return 1
+                return 1 # 1 means engine has AH
 
     def get_uptime(self, command="human"):
         strVPD_Info = self.get_vpd()
@@ -301,7 +301,23 @@ class HAAP():
                         continue
         finally:
             os.chdir(strOriginalFolder)
-
+            
+    def get_overalInfo_tuple(self):
+        #format: IP, uptime, AH, version, status, master, mirror_status
+        #return list/tuple
+        ip = self._host
+        uptime = self.get_uptime()
+        if self.get_engine_health(): ah = "AH"
+        else: ah = "None"
+        version = self.get_version()
+        status = self.get_engine_status()
+        if self.is_master_engine(): master = "M"
+        else: master = ""
+        mirror_status = self.get_mirror_status()
+        if self.get_mirror_status() == 0: mr_st = "All OK"
+        else: mr_st = "NOT OK"
+        return tuple(ip, uptime, ah, version, status, master, mr_status)
+    
 
 if __name__ == '__main__':
     aa = HAAP('172.16.254.72', 23, '.com', 21)

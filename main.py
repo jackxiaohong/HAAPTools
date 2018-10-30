@@ -176,28 +176,44 @@ def _EngineHealth(strEngineIP):
     else:
         print strEngineIP+": "+"OK"
         
-def _ShowEngineInfo(strEngineIP):
-    engineIns = _HAAP(strEngineIP)
-    print "{:<17s}:".format("Engine IP"), strEngineIP
-    print "{:<17s}:".format("Status"), engineIns.get_engine_status()
-    print "{:<17s}:".format("Firmware version"), engineIns.get_version()
-    print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
+# def _ShowEngineInfo(strEngineIP):
+#     engineIns = _HAAP(strEngineIP)
+#     print "{:<17s}:".format("Engine IP"), strEngineIP
+#     print "{:<17s}:".format("Status"), engineIns.get_engine_status()
+#     print "{:<17s}:".format("Firmware version"), engineIns.get_version()
+#     print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
+#      
+#     if engineIns.get_engine_health():
+#         print "{:<17s}: AH".format("Alert Halt")
+#     else:
+#         print "{:<17s}: None".format("Alert Halt")
+#      
+#     if engineIns.is_master_engine():
+#         print "{:<17s}: Yes".format("Master")
+#     else:
+#         print "{:<17s}: No".format("Master")
+#      
+#     mirror_status = engineIns.get_mirror_status()
+#     if mirror_status == 0:
+#         print "{:<17s}: All OK\n".format("Mirror status")
+#     else:
+#         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n"
+def _ShowEngineInfo():
+    lstDesc = ['Engine IP', 'Uptime', 'AlertHalt', 'Firmware Ver.',
+               'Status', 'Master']
+    dictEngines = _get_HAAPInstance()
+    for strDesc in lstDesc:
+        print(strDesc.center(13), end='')
+    for i in lstHAAP:
+        for s in dictEngines[i].get_overalInfo_tuple():
+            print(strDesc.center(13), end='')
     
-    if engineIns.get_engine_health():
-        print "{:<17s}: AH".format("Alert Halt")
-    else:
-        print "{:<17s}: None".format("Alert Halt")
-    
-    if engineIns.is_master_engine():
-        print "{:<17s}: Yes".format("Master")
-    else:
-        print "{:<17s}: No".format("Master")
-    
-    mirror_status = engineIns.get_mirror_status()
-    if mirror_status == 0:
-        print "{:<17s}: All OK\n".format("Mirror status")
-    else:
-        print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n" 
+    for i in lstHAAP:
+        mirror_status = dictEngines[i].get_mirror_status()
+        if mirror_status != 0:
+            print i,":"
+            print mirror_status
+            
 
 def _isIP(s):
     p = re.compile('^((25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(25[0-5]|2[0-4]\d|[01]?\d\d?)$')
@@ -339,7 +355,7 @@ def main():
         else:
             for i in lstHAAP: 
                 _EngineHealth(i)
-    
+
     elif sys.argv[1] == 'infoHAAP':
         if len(sys.argv) != 2:
             print strHelpSingleCommand.format('healthHAAP')
