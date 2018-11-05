@@ -195,8 +195,8 @@ class HAAPConn(object):
 
     def _connect(self):
         try:
-            objTelnetConnect = telnetlib.Telnet(self._host, self._port)
-
+            objTelnetConnect = telnetlib.Telnet(self._host, self._port, timeout=5) #add timeout to avoid pending
+            
             objTelnetConnect.read_until(
                 self._strLoginPrompt.encode(encoding="utf-8"), timeout=2)
             objTelnetConnect.write(self._password.encode(encoding="utf-8"))
@@ -204,7 +204,7 @@ class HAAPConn(object):
             objTelnetConnect.read_until(
                 self._strMainMenuPrompt.encode(encoding="utf-8"), timeout=2)
             objTelnetConnect.write(b'7')
-
+            
             strOutPut = objTelnetConnect.read_until(
                 self._strCLIPrompt.encode(encoding="utf-8"), timeout=2)
             if int(strOutPut.find(self._strCLIPrompt.encode(
@@ -226,7 +226,7 @@ class HAAPConn(object):
 
         except Exception as E:
             return None
-            print("------Goto CLI Failed For Engine: " + self._host)
+            print("------Goto CLI Failed For Engine: " + self._host, E)
 
     def ExecuteCommand(self, strCommand):
 
@@ -268,7 +268,7 @@ class HAAPConn(object):
             if self._Connection:
                 return FindCLI()
             else:
-                print('Connect Faild...')
+                print('Connect Failed...')
 
     def Close(self):
         if self._Connection:
@@ -276,8 +276,8 @@ class HAAPConn(object):
 
 
 if __name__ == '__main__':
-    # aa = HAAPConn('172.16.254.71', 23, '.com')
-    # print(aa._Connection)
+    aa = HAAPConn('172.16.254.71', 23, '.com')
+    print(aa._Connection)
     # print(aa.ExecuteCommand('conmgr status'))
     # print(1)
     # time.sleep(3)
@@ -299,6 +299,6 @@ if __name__ == '__main__':
     #         i += 1
     #     time.sleep(0.25)
 
-    bb = SSHConn('172.16.254.78', 22, 'admin', 'password', 5)
+    #bb = SSHConn('172.16.254.78', 22, 'admin', 'password', 5)
     # print(bb.ExecuteCommand('switchshow'))
-    bb.download('abc', 'def')
+    #bb.download('abc', 'def')

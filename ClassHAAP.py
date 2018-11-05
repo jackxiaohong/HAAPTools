@@ -42,24 +42,31 @@ class HAAP():
         self._telnet_Connection = None
         self._FTP_Connection = None
         self._telnet_connect()
-        self._FTP_connect()
+        #self._FTP_connect()
 
     def _telnet_connect(self):
-        try:
-            self._telnet_Connection = ClassConnect.HAAPConn(self._host,
-                                                            self._TNport,
-                                                            self._password)
-        except Exception as E:
-            print('Connect to HAAP Engine Failed...')
+#         try:
+#             self._telnet_Connection = ClassConnect.HAAPConn(self._host,
+#                                                             self._TNport,
+#                                                             self._password)
+#         except Exception as E:
+#             print('Connect to HAAP Engine Failed...')
+        self._telnet_Connection = ClassConnect.HAAPConn(self._host,
+                                                self._TNport,
+                                                self._password)
 
     def _FTP_connect(self):
-        try:
-            self._FTP_Connection = ClassConnect.FTPConn(self._host,
-                                                        self._FTPport,
-                                                        'adminftp',
-                                                        self._password)
-        except Exception as E:
-            print('Connect to HAAP Engine Failed...')
+#         try:
+#             self._FTP_Connection = ClassConnect.FTPConn(self._host,
+#                                                         self._FTPport,
+#                                                         'adminftp',
+#                                                         self._password)
+#         except Exception as E:
+#             print('Connect to HAAP Engine Failed...')
+        self._FTP_Connection = ClassConnect.FTPConn(self._host,
+                                                                self._FTPport,
+                                                                'adminftp',
+                                                                self._password)
 
     @deco_Exception
     def get_vpd(self):
@@ -84,41 +91,43 @@ class HAAP():
 
     def get_engine_health(self):
         strVPD_Info = self.get_vpd()
-        reAL = re.compile(r'Alert:\s(\S*)')
-        result_reAL = reAL.search(strVPD_Info)
-        if result_reAL is None:
-            print('get engine health status failed...')
-        else:
-            if result_reAL.group(1) == "None":
-                return 0
+        if strVPD_Info is not None:
+            reAL = re.compile(r'Alert:\s(\S*)')
+            result_reAL = reAL.search(strVPD_Info)
+            if result_reAL is None:
+                print('get engine health status failed...')
             else:
-                return 1
-
+                if result_reAL.group(1) == "None":
+                    return 0
+                else:
+                    return 1
+                
     def get_uptime(self, command="human"):
         strVPD_Info = self.get_vpd()
-        reUpTime = re.compile(
-            r'Uptime\s*:\s*((\d*)d*\s*(\d{2}):(\d{2}):(\d{2}))')
-        result_reUptTime = reUpTime.search(strVPD_Info)
-
-        if result_reUptTime is None:
-            print("get uptime failed...")
-        else:
-            # return uptime in string
-            if command == "human":
-                return result_reUptTime.group(1)
-
-            # return day, hr, min, sec in list
-            elif command == "list":
-                lsUpTime = []
-                # add day to list
-                try:
-                    lsUpTime.append(int(result_reUptTime.group(2)))
-                except ValueError:
-                    lsUpTime.append(0)
-                # add hr, min, sec to list
-                for i in range(3, 6):
-                    lsUpTime.append(int(result_reUptTime.group(i)))
-                return lsUpTime
+        if strVPD_Info is not None:
+            reUpTime = re.compile(
+                r'Uptime\s*:\s*((\d*)d*\s*(\d{2}):(\d{2}):(\d{2}))')
+            result_reUptTime = reUpTime.search(strVPD_Info)
+    
+            if result_reUptTime is None:
+                print("get uptime failed...")
+            else:
+                # return uptime in string
+                if command == "human":
+                    return result_reUptTime.group(1)
+    
+                # return day, hr, min, sec in list
+                elif command == "list":
+                    lsUpTime = []
+                    # add day to list
+                    try:
+                        lsUpTime.append(int(result_reUptTime.group(2)))
+                    except ValueError:
+                        lsUpTime.append(0)
+                    # add hr, min, sec to list
+                    for i in range(3, 6):
+                        lsUpTime.append(int(result_reUptTime.group(i)))
+                    return lsUpTime
 
     @deco_Exception
     def is_master_engine(self):
@@ -150,41 +159,43 @@ class HAAP():
 
     def get_mirror_status(self):
         strMirror = self.get_mirror_info()
-        reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  # e.g." 33281(0x8201)"
-        reNoMirror = re.compile(r'No mirrors defined')
-
-        if reMirrorID.search(strMirror):
-            error_line = ""
-            reMirrorStatus = re.compile(r'\d+\s\((\D*)\)')  # e.g."2 (OK )"
-            lines = list(filter(None, strMirror.split("\n")))
-
-            for line in lines:
-                if reMirrorID.match(line):
-                    mirror_ok = True
-                    mem_stat = reMirrorStatus.findall(line)
-                    for status in mem_stat:
-                        if status.strip() != 'OK':
-                            mirror_ok = False
-                    if not mirror_ok:
-                        error_line += line + "\n"
-            if error_line:
-                return error_line
+        if strMirror is not None:
+            reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  # e.g." 33281(0x8201)"
+            reNoMirror = re.compile(r'No mirrors defined')
+    
+            if reMirrorID.search(strMirror):
+                error_line = ""
+                reMirrorStatus = re.compile(r'\d+\s\((\D*)\)')  # e.g."2 (OK )"
+                lines = list(filter(None, strMirror.split("\n")))
+    
+                for line in lines:
+                    if reMirrorID.match(line):
+                        mirror_ok = True
+                        mem_stat = reMirrorStatus.findall(line)
+                        for status in mem_stat:
+                            if status.strip() != 'OK':
+                                mirror_ok = False
+                        if not mirror_ok:
+                            error_line += line + "\n"
+                if error_line:
+                    return error_line
+                else:
+                    return 0
             else:
-                return 0
-        else:
-            if reNoMirror.search(strMirror):
-                print("No mirrors defined")
-            else:
-                print("get mirror status failed...")
+                if reNoMirror.search(strMirror):
+                    print("No mirrors defined")
+                else:
+                    print("get mirror status failed...")
 
     def get_version(self):
         strVPD_Info = self.get_vpd()
-        reFirmware = re.compile(r'Firmware\sV\d+(.\d+)*')
-        resultFW = reFirmware.search(strVPD_Info)
-        if resultFW:
-            return resultFW.group()
-        else:
-            print("get firmware version failed...")
+        if strVPD_Info is not None:
+            reFirmware = re.compile(r'Firmware\sV\d+(.\d+)*')
+            resultFW = reFirmware.search(strVPD_Info)
+            if resultFW:
+                return resultFW.group()
+            else:
+                print("get firmware version failed...")
 
     @deco_GotoFolder(strOriFolder)
     def backup(self, strBaseFolder):
