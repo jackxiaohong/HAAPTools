@@ -42,27 +42,14 @@ class HAAP():
         self._telnet_Connection = None
         self._FTP_Connection = None
         self._telnet_connect()
-        #self._FTP_connect()
+        self._FTP_connect()
 
     def _telnet_connect(self):
-#         try:
-#             self._telnet_Connection = ClassConnect.HAAPConn(self._host,
-#                                                             self._TNport,
-#                                                             self._password)
-#         except Exception as E:
-#             print('Connect to HAAP Engine Failed...')
         self._telnet_Connection = ClassConnect.HAAPConn(self._host,
                                                 self._TNport,
                                                 self._password)
 
     def _FTP_connect(self):
-#         try:
-#             self._FTP_Connection = ClassConnect.FTPConn(self._host,
-#                                                         self._FTPport,
-#                                                         'adminftp',
-#                                                         self._password)
-#         except Exception as E:
-#             print('Connect to HAAP Engine Failed...')
         self._FTP_Connection = ClassConnect.FTPConn(self._host,
                                                                 self._FTPport,
                                                                 'adminftp',
@@ -73,7 +60,7 @@ class HAAP():
         if self._telnet_Connection:
             return self._telnet_Connection.ExecuteCommand('vpd')
         else:
-            self._connect()
+            self._telnet_connect()
             return self._telnet_Connection.ExecuteCommand('vpd')
 
     @deco_Exception
@@ -81,18 +68,19 @@ class HAAP():
         if self._telnet_Connection:
             strEnter = self._telnet_Connection.ExecuteCommand('')
         else:
-            self._connect()
+            self._telnet_connect()
             strEnter = self._telnet_Connection.ExecuteCommand('')
-        reCLI = re.compile(r'CLI>')
-        if reCLI.search(strEnter):
-            return "ONLINE"
-        else:
-            return "offline"
+        if strEnter is not None:
+            reCLI = re.compile(r'CLI>')
+            if reCLI.search(strEnter):
+                return "ONLINE"
+            else:
+                return "offline"
     
     def get_engine_health(self, strVPD_Info=None):
         if strVPD_Info is None:
             strVPD_Info = self.get_vpd()
-        if strVPD_info is not None:
+        if strVPD_Info is not None:
             reAL = re.compile(r'Alert:\s(\S*)')
             result_reAL = reAL.search(strVPD_Info)
             if result_reAL is None:
@@ -136,27 +124,28 @@ class HAAP():
         if self._telnet_Connection:
             strEngine_info = self._telnet_Connection.ExecuteCommand('engine')
         else:
-            self._connect()
+            self._telnet_connect()
             strEngine_info = self._telnet_Connection.ExecuteCommand('engine')
 
-        # make sure we can get engine info
-        if re.search(r'>>', strEngine_info) is None:
-            print("get engine info failed...")
-        else:
-            # e.g. ">> 1  (M)" means current engine is master
-            reMaster = re.compile(r'(>>)\s*\d*\s*(\(M\))')
-            result_reMaster = reMaster.search(strEngine_info)
-            if result_reMaster is None:
-                return False
+        if strEngine_info is not None:
+            # make sure we can get engine info
+            if re.search(r'>>', strEngine_info) is None:
+                print("get engine info failed...")
             else:
-                return True
+                # e.g. ">> 1  (M)" means current engine is master
+                reMaster = re.compile(r'(>>)\s*\d*\s*(\(M\))')
+                result_reMaster = reMaster.search(strEngine_info)
+                if result_reMaster is None:
+                    return False
+                else:
+                    return True
 
     @deco_Exception
     def get_mirror_info(self):
         if self._telnet_Connection:
             return self._telnet_Connection.ExecuteCommand('mirror')
         else:
-            self._connect()
+            self._telnet_connect()
             return self._telnet_Connection.ExecuteCommand('mirror')
 
     def get_mirror_status(self, strMirror=None):
@@ -181,12 +170,12 @@ class HAAP():
                         if not mirror_ok:
                             error_line += line + "\n"
                 if error_line:
-                    return error_line
+                    return error_line # means mirror not okay
                 else:
-                    return 0
+                    return 0 #0 means mirror all okay
             else:
                 if reNoMirror.search(strMirror):
-                    return -1
+                    return -1 #-1 means no mirror defined
                 else:
                     print("get mirror status failed...")
 
@@ -303,7 +292,7 @@ class HAAP():
             print(__name__, E)
         finally:
             os.chdir(strOriginalFolder)
-            print('get trace complately ' + self._host + '@' + os.getcwd())
+            print('get trace completely ' + self._host + '@' + os.getcwd())
 
     def periodic_check(self, lstCommand, strResultFolder, strResultFile):
         tn = self._telnet_Connection
@@ -330,35 +319,52 @@ class HAAP():
     def infoEngine_lst(self):
         #return: [IP, uptime, AH, FM version, status, master, mirror status]
         strVPD = self.get_vpd()
+       
         ip = self._host
         uptime = self.get_uptime(strVPD_Info=strVPD)
         if self.get_engine_health(strVPD_Info=strVPD): 
             ah = "AH"
         else: 
             ah = "None"
-        version = self.get_version(strVPD_Info=strVPD)[9:]
+        
+        version = self.get_version(strVPD_Info=strVPD)
+        if version is not None: version = version[9:]
         
         status = self.get_engine_status()
-        if self.is_master_engine(): 
-            master = "M"
-        else: 
-            master = ""
+        master = self.is_master_engine()
+        if master is not None:
+            if master:
+                master = "M"
+            else: 
+                master = ""
             
-        mirror_status = self.get_mirror_status()
-        if mirror_status == 0: 
+        mr_st = self.get_mirror_status()
+        if mr_st == 0: 
             mr_st = "All OK"
-        elif mirror_status == -1: 
+        elif mr_st == -1: 
             mr_st = "No Mirror"
         else: 
-            mr_st = "NOT ok"
+            if mr_st is not None:
+                mr_st = "NOT ok"
         return [ip, uptime, ah, version, status, master, mr_st]
     
 
 if __name__ == '__main__':
     aa = HAAP('172.16.254.72', 23, '.com', 21)
-    print(aa.get_vpd())
-    print(aa.get_uptime('list'))
-
+#     print(aa.get_vpd())
+#     print(aa.get_uptime('list'))
+#     a = HAAP('10.203.1.111', 23, '', 21)
+    print aa.get_vpd()
+#     print a.get_engine_status()
+#     print a.get_engine_health()
+#     print a.get_uptime(command="human")
+#     print a.is_master_engine()
+#     print a.get_mirror_info()
+#     print a.get_mirror_status()
+#     print a.get_version()
+#     print a.infoEngine_lst()
+    
+    
     #w = ClassConnect.FTPConn('172.16.254.71', 21, 'adminftp', '.com')
 
     # print(w.getwelcome())
