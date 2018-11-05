@@ -88,22 +88,24 @@ class HAAP():
             return "ONLINE"
         else:
             return "offline"
-
-    def get_engine_health(self):
-        strVPD_Info = self.get_vpd()
-        if strVPD_Info is not None:
+    
+    def get_engine_health(self, strVPD_Info=None):
+        if strVPD_Info is None:
+            strVPD_Info = self.get_vpd()
+        if strVPD_info is not None:
             reAL = re.compile(r'Alert:\s(\S*)')
             result_reAL = reAL.search(strVPD_Info)
             if result_reAL is None:
-                print('get engine health status failed...')
+                print("get engine health status failed...")
             else:
                 if result_reAL.group(1) == "None":
-                    return 0
+                    return 0 # 0 means engine is healthy
                 else:
-                    return 1
-                
-    def get_uptime(self, command="human"):
-        strVPD_Info = self.get_vpd()
+                    return 1 # 1 means engine has AH
+
+    def get_uptime(self, command="human", strVPD_Info=None):
+        if strVPD_Info is None:
+            strVPD_Info = self.get_vpd()
         if strVPD_Info is not None:
             reUpTime = re.compile(
                 r'Uptime\s*:\s*((\d*)d*\s*(\d{2}):(\d{2}):(\d{2}))')
@@ -157,8 +159,9 @@ class HAAP():
             self._connect()
             return self._telnet_Connection.ExecuteCommand('mirror')
 
-    def get_mirror_status(self):
-        strMirror = self.get_mirror_info()
+    def get_mirror_status(self, strMirror=None):
+        if strMirror is None:
+            strMirror = self.get_mirror_info()
         if strMirror is not None:
             reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  # e.g." 33281(0x8201)"
             reNoMirror = re.compile(r'No mirrors defined')
@@ -183,12 +186,13 @@ class HAAP():
                     return 0
             else:
                 if reNoMirror.search(strMirror):
-                    print("No mirrors defined")
+                    return -1
                 else:
                     print("get mirror status failed...")
 
-    def get_version(self):
-        strVPD_Info = self.get_vpd()
+    def get_version(self, strVPD_Info=None):
+        if strVPD_Info is None:
+            strVPD_Info = self.get_vpd()
         if strVPD_Info is not None:
             reFirmware = re.compile(r'Firmware\sV\d+(.\d+)*')
             resultFW = reFirmware.search(strVPD_Info)
@@ -322,7 +326,33 @@ class HAAP():
                         continue
         finally:
             os.chdir(strOriginalFolder)
-
+            
+    def infoEngine_lst(self):
+        #return: [IP, uptime, AH, FM version, status, master, mirror status]
+        strVPD = self.get_vpd()
+        ip = self._host
+        uptime = self.get_uptime(strVPD_Info=strVPD)
+        if self.get_engine_health(strVPD_Info=strVPD): 
+            ah = "AH"
+        else: 
+            ah = "None"
+        version = self.get_version(strVPD_Info=strVPD)[9:]
+        
+        status = self.get_engine_status()
+        if self.is_master_engine(): 
+            master = "M"
+        else: 
+            master = ""
+            
+        mirror_status = self.get_mirror_status()
+        if mirror_status == 0: 
+            mr_st = "All OK"
+        elif mirror_status == -1: 
+            mr_st = "No Mirror"
+        else: 
+            mr_st = "NOT ok"
+        return [ip, uptime, ah, version, status, master, mr_st]
+    
 
 if __name__ == '__main__':
     aa = HAAP('172.16.254.72', 23, '.com', 21)

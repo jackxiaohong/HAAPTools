@@ -179,34 +179,54 @@ def _FWUpdate(strEngineIP, strFWFile):
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
     if alert:
-        print(strEngineIP + ":" + "AH")
+        print strEngineIP+": "+"AH"
     else:
-        print(strEngineIP + ":" + "OK")
-
-
-def _ShowEngineInfo(strEngineIP):
-    engineIns = _HAAP(strEngineIP)
-    print("{:<17s}:".format("Engine IP"), strEngineIP)
-    print("{:<17s}:".format("Status"), engineIns.get_engine_status())
-    print("{:<17s}:".format("Firmware version"), engineIns.get_version())
-    print("{:<17s}:".format("Uptime"), engineIns.get_uptime())
-
-    if engineIns.get_engine_health():
-        print("{:<17s}: AH".format("Alert Halt"))
-    else:
-        print("{:<17s}: None".format("Alert Halt"))
-
-    if engineIns.is_master_engine():
-        print("{:<17s}: Yes".format("Master"))
-    else:
-        print("{:<17s}: No".format("Master"))
-
-    mirror_status = engineIns.get_mirror_status()
-    if not mirror_status:
-        print("{:<17s}: All OK\n".format("Mirror status"))
-    else:
-        print("{:<17s}: \n".format("Mirror status"), mirror_status, "\n")
-
+        print strEngineIP+": "+"OK"
+        
+# def _ShowEngineInfo(strEngineIP):
+#     engineIns = _HAAP(strEngineIP)
+#     print "{:<17s}:".format("Engine IP"), strEngineIP
+#     print "{:<17s}:".format("Status"), engineIns.get_engine_status()
+#     print "{:<17s}:".format("Firmware version"), engineIns.get_version()
+#     print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
+#      
+#     if engineIns.get_engine_health():
+#         print "{:<17s}: AH".format("Alert Halt")
+#     else:
+#         print "{:<17s}: None".format("Alert Halt")
+#      
+#     if engineIns.is_master_engine():
+#         print "{:<17s}: Yes".format("Master")
+#     else:
+#         print "{:<17s}: No".format("Master")
+#      
+#     mirror_status = engineIns.get_mirror_status()
+#     if mirror_status == 0:
+#         print "{:<17s}: All OK\n".format("Mirror status")
+#     else:
+#         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n"
+def _ShowEngineInfo():
+    dictEngines = _get_HAAPInstance()
+    def general_info():
+        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version','Status', 'Master', 'Mirror')
+        for strDesc in lstDesc:
+            print(strDesc.center(12)),
+        print
+        for i in lstHAAP:
+            for s in dictEngines[i].infoEngine_lst():
+                print(s.center(12)),
+            print 
+    def mirror_info(): #needs optimization    
+        print "\nMirror Error"
+        for i in lstHAAP:
+            print i,":",
+            mirror_status = dictEngines[i].get_mirror_status()
+            if mirror_status != 0 and mirror_status != -1:
+                print mirror_status
+            else:
+                print "None"
+    general_info()
+    mirror_info()
 
 def _isIP(s):
     p = re.compile(
@@ -360,8 +380,7 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            for i in lstHAAP:
-                _ShowEngineInfo(i)
+            _ShowEngineInfo()
 
     elif sys.argv[1] == 'test':
         print(len(sys.argv))
