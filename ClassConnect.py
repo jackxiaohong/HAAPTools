@@ -19,7 +19,7 @@ class FTPConn(object):
         ftp = FTP()
         def _conn():
             try:
-                ftp.connect(self._host, self._port)
+                ftp.connect(self._host, self._port, timeout=2)
                 return True
             except Exception as E:
                 print('\nFTP Connect to {} Failed...\nReason: {}'.format(
@@ -200,7 +200,7 @@ class HAAPConn(object):
 
     def _connect(self):
         try:
-            objTelnetConnect = telnetlib.Telnet(self._host, self._port, timeout=5) #add timeout to avoid pending
+            objTelnetConnect = telnetlib.Telnet(self._host, self._port, timeout=2) #add timeout to avoid pending
             
             objTelnetConnect.read_until(
                 self._strLoginPrompt.encode(encoding="utf-8"), timeout=2)
@@ -273,7 +273,7 @@ class HAAPConn(object):
             if self._Connection:
                 return FindCLI()
             else:
-                print('Connect Failed...')
+                print('\nTelnet Connect to {} Failed...'.format(self._host))
 
     def Close(self):
         if self._Connection:
