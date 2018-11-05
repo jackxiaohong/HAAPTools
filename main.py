@@ -28,7 +28,7 @@ strHelp = '''
         -CFGbackup        : Save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local 
         -autoCLI          : Execute commands listed in <File> on an <Engine>
         -pc               : Execute periodic-check commands on an <Engine>
-        -pcAll            : Execute periodic-check commands on ALL Engines
+        -pcALL            : Execute periodic-check commands on ALL Engines
         -updateFW         : Update an <Engine>'s firmware based on <Firmware_File>
         -healthHAAP       : Show health status (AH) for All engines
         -infoHAAP         : Show overall Info for All engines     
@@ -178,10 +178,10 @@ def _FWUpdate(strEngineIP, strFWFile):
 
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
-    if alert:
-        print strEngineIP+": "+"AH"
-    else:
-        print strEngineIP+": "+"OK"
+    if alert is not None: 
+        if alert: al_st = "AH"
+        else: al_st = "OK"
+        print("{}: {}".format(strEngineIP, al_st))
         
 # def _ShowEngineInfo(strEngineIP):
 #     engineIns = _HAAP(strEngineIP)
@@ -207,14 +207,20 @@ def _EngineHealth(strEngineIP):
 #         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n"
 def _ShowEngineInfo():
     dictEngines = _get_HAAPInstance()
+    info_lst = []
+    for i in lstHAAP:
+        info_lst.append(dictEngines[i].infoEngine_lst())
     def general_info():
         lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version','Status', 'Master', 'Mirror')
         for strDesc in lstDesc:
-            print(strDesc.center(12)),
+            print(strDesc.center(14)),
         print
-        for i in lstHAAP:
-            for s in dictEngines[i].infoEngine_lst():
-                print(s.center(12)),
+        for i in info_lst:
+            for s in i:
+                if s is not None:
+                    print(s.center(14)),
+                else:
+                    print("None".center(14)),
             print 
     def mirror_info(): #needs optimization    
         print "\nMirror Error"
