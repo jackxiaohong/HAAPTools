@@ -8,46 +8,70 @@ import sys
 import Source as s
 
 
+def deco_Exception(func):
+    def _deco(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except Exception as E:
+            #print(func.__name__, E)
+            pass
+    return _deco
+
 class FTPConn(object):
-    def __init__(self, strIP, intPort, strUserName, strPasswd):
+    def __init__(self, strIP, intPort, strUser, strPWD, intTO):
         self._host = strIP
         self._port = intPort
-        self._username = strUserName
-        self._password = strPasswd
+        self._username = strUser
+        self._password = strPWD
+        self._timeout = intTO
+        self._connected = None
+        self._logined = None
         self._Connection = None
-        self._connect()
+        self._FTPconnect()
 
-    def _connect(self):
+    #@deco_Exception
+    def _FTPconnect(self):
         ftp = FTP()
-
+        
         def _conn():
-            ftp.connect(self._host, self._port)
-            return True
-            # except Exception as E:
-            #     print('\nFTP Connect to {} Failed...\nReason: {}'.format(
-            #         self._host, E))
-            #     return False
+            try:
+                ftp.connect(self._host, self._port, self._timeout)
+                self._connected = ftp
+                return True
+            except Exception as E:
+                return
 
         def _login():
-            ftp.login(self._username, self._password)
-            return True
-            # except Exception as E:
-            #     print('\nFTP Login to {} Failed...\nReason: {}'.format(
-            #         self._host, E))
-            #     return False
+            try:
+                ftp.login(self._username, self._password)
+                self._logined = ftp
+                return True
+            except Exception as E:
+                return
 
-        if _conn():
-            if _login():
+        loginError = s.ShowErrors('FTP Login to {} Failed...'.format(self._host),
+                    self.__class__.__name__)
+        _conn()
+        if self._connected:
+            _login()
+            if self._logined:
                 self._Connection = ftp
             else:
-                raise Exception, s.ShowErrors(
-                    'FTP Login Failed...',
-                    self.__class__.__name__)
+                loginError
         else:
-            raise Exception, s.ShowErrors(
-                'FTP Connect Failed...',
-                self.__class__.__name__)
+            _conn()
+            if self._connected:
+                _login()
+                if self._logined:
+                    self._Connection = ftp
+                else:
+                    loginError
+            else:
+                s.ShowErrors('FTP Connect to {} Failed...'.format(self._host),
+                        self.__class__.__name__)
+                
 
+    #@deco_Exception
     def GetFile(self, strRemoteFolder, strLocalFolder, strRemoteFileName,
                 strLocalFileName, FTPtype='bin', intBufSize=1024):
         def _getfile():
@@ -69,13 +93,14 @@ class FTPConn(object):
         if self._Connection:
             return _getfile()
         else:
-            self._connect()
+            self._FTPconnect()
             if _getfile():
                 return True
             else:
                 s.ShowErrors('FTP Download File Failed...',
                              self.__class__.__name__)
 
+    #@deco_Exception
     def PutFile(self, strRemoteFolder, strLocalFolder, strRemoteFileName,
                 strLocalFileName, FTPtype='bin', intBufSize=1024):
         def _putfile():
@@ -97,7 +122,7 @@ class FTPConn(object):
         if self._Connection:
             return _putfile()
         else:
-            self._connect()
+            self._FTPconnect()
             if _putfile():
                 return True
             else:
@@ -117,25 +142,19 @@ class SSHConn(object):
         self._connect()
 
     def _connect(self):
-        objSSHClient = paramiko.SSHClient()
-        objSSHClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        objSSHClient.connect(self._host, port=self._port,
-                             username=self._username,
-                             password=self._password,
-                             timeout=self._timeout)
-        self._client = objSSHClient
-        return True
+        try:
+            objSSHClient = paramiko.SSHClient()
+            objSSHClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            objSSHClient.connect(self._host, port=self._port,
+                                 username=self._username,
+                                 password=self._password,
+                                 timeout=self._timeout)
+            self._client = objSSHClient
+            return True
+        except Exception as E:
+            s.ShowErrors('Connect to {} Failed'.format(self._host),
+                        self.__class__.__name__)
 
-        # try:
-        #     _make_connect()
-        # except Exception as E:
-        #     print(__name__, E)
-        # try:
-        #     _make_connect()
-        # except Exception as E:
-        #     pass
-        # if not self._client:
-        #     print('Can not connect to {}'.format(self._host))
 
     def download(self, remotepath, localpath):
         def _download():
@@ -210,10 +229,11 @@ class SSHConn(object):
 
 
 class HAAPConn(object):
-    def __init__(self, strIP, intPort, strPasswd):
+    def __init__(self, strIP, intPort, strPWD, intTO):
         self._host = strIP
         self._port = intPort
-        self._password = strPasswd
+        self._password = strPWD
+        self._timeout = intTO
         self._strLoginPrompt = 'Enter password'
         self._strMainMenuPrompt = 'Coredump Menu'
         self._strCLIPrompt = 'CLI>'
@@ -221,8 +241,9 @@ class HAAPConn(object):
         self._Connection = None
         self._connect()
 
+    @deco_Exception
     def _connect(self):
-        objTelnetConnect = telnetlib.Telnet(self._host, self._port)
+        objTelnetConnect = telnetlib.Telnet(self._host, self._port, timeout=3)
 
         objTelnetConnect.read_until(
             self._strLoginPrompt.encode(encoding="utf-8"), timeout=2)
@@ -253,6 +274,7 @@ class HAAPConn(object):
         # ------Handle the CLI Succesfully For Engine: {}
         #                     '''.format(self._strIP))
 
+    @deco_Exception
     def ExecuteCommand(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")

@@ -6,12 +6,14 @@ import sys
 def ShowErrors(strError,
                className,
                funcName=sys._getframe().f_code.co_name):
-    return str('''
+    print(str('''
+*******************************************************************
     Errors:
         Class Name :   {}
         Function name: {}
         Error Message: {}
-            '''.format(className, funcName, strError))
+*******************************************************************
+            '''.format(className, funcName, strError)))
 
 
 def GotoFolder(strFolder):
