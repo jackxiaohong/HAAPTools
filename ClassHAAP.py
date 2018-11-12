@@ -45,16 +45,40 @@ class HAAP():
 
     def _telnet_connect(self):
         self._TN_Conn = ClassConnect.HAAPConn(self._host,
-                                                        self._TNport,
-                                                        self._password,
-                                                        self._timeout)
+                                                  self._TNport,
+                                                  self._password,
+                                                  self._timeout)
 
     def _FTP_connect(self):
-        self._FTP_Conn = ClassConnect.FTPConn(self._host,
-                                                    self._FTPport,
-                                                    'adminftp',
-                                                    self._password,
-                                                    self._timeout)
+        try:
+            self._FTP_Conn = ClassConnect.FTPConn(self._host,
+                                              self._FTPport,
+                                              'adminftp',
+                                              self._password,
+                                              self._timeout)
+            print(self._FTP_Conn)
+        except Exception as E:
+            return
+
+    # def self._telnet_connect(self):
+    #     if self._FTP_Conn:
+    #         return self._FTP_Conn
+    #     else:
+    #         if self._telnet_connect():
+    #             return self._FTP_Conn
+    #         else:
+    #             print('FTP Connnect to {} Failed...'.format(self._host))
+    #             return
+
+    # def _make_TN_Conn(self):
+    #     if self._TN_Conn:
+    #         return self._TN_Conn
+    #     else:
+    #         if self._FTP_connect():
+    #             return self._TN_Conn
+    #         else:
+    #             print('FTP Connnect to {} Failed...'.format(self._host))
+    #             return
 
     def _telnetExcute(self, strCMD):
         return self._TN_Conn.ExecuteCommand(strCMD)
@@ -74,7 +98,7 @@ class HAAP():
         if self._TN_Conn:
             return self._TN_Conn.ExecuteCommand('vpd')
         else:
-            self._connect()
+            self._telnet_connect()
             if self._TN_Conn:
                 return self._TN_Conn.ExecuteCommand('vpd')
             else:
@@ -85,7 +109,7 @@ class HAAP():
         if self._TN_Conn:
             strEnter = self._TN_Conn.ExecuteCommand('')
         else:
-            self._connect()
+            self._telnet_connect()
             strEnter = self._TN_Conn.ExecuteCommand('')
         reCLI = re.compile(r'CLI>')
         if reCLI.search(strEnter):
@@ -143,7 +167,7 @@ class HAAP():
         if self._TN_Conn:
             strEngine_info = self._TN_Conn.ExecuteCommand('engine')
         else:
-            self._connect()
+            self._telnet_connect()
             strEngine_info = self._TN_Conn.ExecuteCommand('engine')
 
         # make sure we can get engine info
@@ -163,8 +187,8 @@ class HAAP():
         if self._TN_Conn:
             return self._TN_Conn.ExecuteCommand('mirror')
         else:
-            self._connect()
-            return self._TN_Conn.ExecuteCommand('mirror')
+            if self._make_TN_Conn():
+                return self._TN_Conn.ExecuteCommand('mirror')
 
     @deco_Exception
     def get_mirror_status(self):
@@ -208,6 +232,7 @@ class HAAP():
 
     @deco_GotoFolder
     def backup(self, strBaseFolder):
+
         s.GotoFolder(strBaseFolder)
         connFTP = self._FTP_Conn
         lstCFGFile = ['automap.cfg', 'cm.cfg', 'san.cfg']
@@ -243,8 +268,6 @@ class HAAP():
 
     @deco_GotoFolder
     def get_trace(self, strBaseFolder, intTraceLevel):
-        tn = self._TN_Conn
-        connFTP = self._FTP_Conn
 
         def _get_oddCommand(intTraceLevel):
             oddCMD = OrderedDict()
@@ -280,7 +303,7 @@ class HAAP():
                 return True
             else:
                 s.ShowErrors('Can Not Get Trace Name...',
-                    self.__class__.__name__)
+                             self.__class__.__name__)
 
         oddCommand = _get_oddCommand(intTraceLevel)
         lstCommand = list(oddCommand.values())
@@ -292,13 +315,39 @@ class HAAP():
             #     self._telnet_connect()
             # if not connFTP:
             #     self._FTP_connect()
-            if tn:
-                if connFTP:
+            # print('self._TN_Conn:{}'.format(self._TN_Conn))
+            # if not self._TN_Conn:
+            #     print('...')
+            if self._telnet_connect():
+                print('xxx')
+                tn = self._TN_Conn
+                if self._FTP_connect():
+                    connFTP = self._FTP_Conn
                     _get_trace_file(lstCommand[i], lstDescribe[i])
                 else:
-                    print('Please Check FTP Connection...')
+                    print('FTP To {} Failed...'.format(self._host))
+                    continue
             else:
-                print('Please Check Telnet Connection...')
+                print('Telnet To {} Failed...'.format(self._host))
+                continue
+            # else:
+            #     if self._telnet_connect():
+            #         connFTP = self._FTP_Conn
+            #         _get_trace_file(lstCommand[i], lstDescribe[i])
+            #     else:
+            #         print('FTP To {} Failed...'.format(self._host))
+            #         continue
+
+
+
+
+            # if tn:
+            #     if connFTP:
+                    
+            #     else:
+            #         print('Please Check FTP Connection...')
+            # else:
+            #     print('Please Check Telnet Connection...')
             time.sleep(0.1)
         # print(os.listdir(strBaseFolder))
         # print(len(os.listdir(strBaseFolder)))

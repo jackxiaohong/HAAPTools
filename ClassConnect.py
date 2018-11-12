@@ -17,6 +17,7 @@ def deco_Exception(func):
             pass
     return _deco
 
+
 class FTPConn(object):
     def __init__(self, strIP, intPort, strUser, strPWD, intTO):
         self._host = strIP
@@ -32,7 +33,7 @@ class FTPConn(object):
     #@deco_Exception
     def _FTPconnect(self):
         ftp = FTP()
-        
+
         def _conn():
             try:
                 ftp.connect(self._host, self._port, self._timeout)
@@ -49,27 +50,22 @@ class FTPConn(object):
             except Exception as E:
                 return
 
-        loginError = s.ShowErrors('FTP Login to {} Failed...'.format(self._host),
-                    self.__class__.__name__)
-        _conn()
-        if self._connected:
-            _login()
-            if self._logined:
+        if _conn():
+            if _login():
                 self._Connection = ftp
             else:
-                loginError
+                s.ShowErrors('FTP Login to {} Failed...'.format(
+                    self._host), self.__class__.__name__)
+        # else:
+        #     if _conn():
+        #         if _login():
+        #             self._Connection = ftp
+        #         else:
+        #             s.ShowErrors('FTP Login to {} Failed...'.format(
+        #                 self._host), self.__class__.__name__)
         else:
-            _conn()
-            if self._connected:
-                _login()
-                if self._logined:
-                    self._Connection = ftp
-                else:
-                    loginError
-            else:
-                s.ShowErrors('FTP Connect to {} Failed...'.format(self._host),
-                        self.__class__.__name__)
-                
+            s.ShowErrors('FTP Connect to {} Failed...'.format(self._host),
+                         self.__class__.__name__)
 
     #@deco_Exception
     def GetFile(self, strRemoteFolder, strLocalFolder, strRemoteFileName,
@@ -153,8 +149,7 @@ class SSHConn(object):
             return True
         except Exception as E:
             s.ShowErrors('Connect to {} Failed'.format(self._host),
-                        self.__class__.__name__)
-
+                         self.__class__.__name__)
 
     def download(self, remotepath, localpath):
         def _download():
