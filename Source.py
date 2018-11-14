@@ -3,17 +3,15 @@ import os
 import sys
 
 
-def ShowErrors(strError,
-               className,
-               funcName=sys._getframe().f_code.co_name):
+def ShowErr(_class, _func, _Msg, _Error = ''):
     print(str('''
 *******************************************************************
-    Errors:
-        Class Name :   {}
-        Function name: {}
-        Error Message: {}
-*******************************************************************
-            '''.format(className, funcName, strError)))
+Error Message:
+    Class Name :   {}
+    Function name: {}
+    Error Message: {}
+        {}
+    '''.format(_class, _func, _Msg, _Error)))
 
 
 def GotoFolder(strFolder):

@@ -13,7 +13,12 @@ def deco_Exception(func):
         try:
             return func(self, *args, **kwargs)
         except Exception as E:
-            #print(func.__name__, E)
+            print('''
+    **************************************************************
+    Class Name:     {}
+    Function Name:  {}
+    Error Message:  {}
+            '''.format(self.__class__.__name__, func.__name__, E))
             pass
     return _deco
 
@@ -28,9 +33,8 @@ class FTPConn(object):
         self._connected = None
         self._logined = None
         self._Connection = None
-        self._FTPconnect()
+        # self._FTPconnect()
 
-    #@deco_Exception
     def _FTPconnect(self):
         ftp = FTP()
 
@@ -40,6 +44,12 @@ class FTPConn(object):
                 self._connected = ftp
                 return True
             except Exception as E:
+                # print(E)
+                s.ShowErr(self.__class__.__name__,
+                          sys._getframe().f_code.co_name,
+                          'FTP Connect to {} Fail with Error:'.format(
+                              self._host),
+                          E)
                 return
 
         def _login():
@@ -48,82 +58,112 @@ class FTPConn(object):
                 self._logined = ftp
                 return True
             except Exception as E:
+                # print(E)
+                s.ShowErr(self.__class__.__name__,
+                          sys._getframe().f_code.co_name,
+                          'FTP Login to {} Fail with Error:'.format(
+                              self._host),
+                          E)
                 return
 
         if _conn():
             if _login():
                 self._Connection = ftp
+                return True
             else:
-                s.ShowErrors('FTP Login to {} Failed...'.format(
-                    self._host), self.__class__.__name__)
+                # s.ShowErr('FTP Login to {} Failed...'.format(
+                #     self._host), self.__class__.__name__)
+                return
         # else:
         #     if _conn():
         #         if _login():
         #             self._Connection = ftp
         #         else:
-        #             s.ShowErrors('FTP Login to {} Failed...'.format(
+        #             s.ShowErr('FTP Login to {} Failed...'.format(
         #                 self._host), self.__class__.__name__)
         else:
-            s.ShowErrors('FTP Connect to {} Failed...'.format(self._host),
-                         self.__class__.__name__)
+            # s.ShowErr('FTP Connect to {} Failed...'.format(self._host),
+                         # self.__class__.__name__)
+            return
 
-    #@deco_Exception
     def GetFile(self, strRemoteFolder, strLocalFolder, strRemoteFileName,
                 strLocalFileName, FTPtype='bin', intBufSize=1024):
         def _getfile():
-            ftp = self._Connection
-            # print(ftp.getwelcome())
-            ftp.cwd(strRemoteFolder)
-            objOpenLocalFile = open('{}/{}'.format(
-                strLocalFolder, strLocalFileName), "wb")
-            if FTPtype == 'bin':
-                ftp.retrbinary('RETR {}'.format(strRemoteFileName),
-                               objOpenLocalFile.write)
-            elif FTPtype == 'asc':
-                ftp.retrlines('RETR {}'.format(strRemoteFileName),
-                              objOpenLocalFile.write)
-            objOpenLocalFile.close()
-            ftp.cwd('/')
-            return True
+            try:
+                ftp = self._Connection
+                # print(ftp.getwelcome())
+                ftp.cwd(strRemoteFolder)
+                objOpenLocalFile = open('{}/{}'.format(
+                    strLocalFolder, strLocalFileName), "wb")
+                if FTPtype == 'bin':
+                    ftp.retrbinary('RETR {}'.format(strRemoteFileName),
+                                   objOpenLocalFile.write)
+                elif FTPtype == 'asc':
+                    ftp.retrlines('RETR {}'.format(strRemoteFileName),
+                                  objOpenLocalFile.write)
+                objOpenLocalFile.close()
+                ftp.cwd('/')
+                return True
+            except Exception as E:
+                s.ShowErr(self.__class__.__name__,
+                          sys._getframe().f_code.co_name,
+                          'FTP Download "{}" Fail with Error:'.format(
+                              self._host),
+                          E)
 
         if self._Connection:
-            return _getfile()
-        else:
-            self._FTPconnect()
             if _getfile():
                 return True
-            else:
-                s.ShowErrors('FTP Download File Failed...',
-                             self.__class__.__name__)
+        else:
+            if self._FTPconnect():
+                if _getfile():
+                    return True
+                # else:
+                #     s.ShowErr('FTP Download "{}" Fail with Error:\n\t\t{}'.format(
+                #         self._host, E),
+                #         self.__class__.__name__,
+                #         sys._getframe().f_code.co_name)
+            # else:
+                # s.ShowErr('FTP Connect to {} Failed...'.format(
+                #     self._host), self.__class__.__name__)
+                pass
 
-    #@deco_Exception
     def PutFile(self, strRemoteFolder, strLocalFolder, strRemoteFileName,
                 strLocalFileName, FTPtype='bin', intBufSize=1024):
         def _putfile():
-            ftp = self._Connection
-            # print(ftp.getwelcome())
-            ftp.cwd(strRemoteFolder)
-            objOpenLocalFile = open('{}/{}'.format(
-                strLocalFolder, strLocalFileName), 'rb')
-            if FTPtype == 'bin':
-                ftp.storbinary('STOR {}'.format(strRemoteFileName),
-                               objOpenLocalFile, intBufSize)
-            elif FTPtype == 'asc':
-                ftp.storlines('STOR {}'.format(
-                    strRemoteFileName), objOpenLocalFile)
-            ftp.set_debuglevel(0)
-            objOpenLocalFile.close()
-            return True
+            try:
+                ftp = self._Connection
+                # print(ftp.getwelcome())
+                ftp.cwd(strRemoteFolder)
+                objOpenLocalFile = open('{}/{}'.format(
+                    strLocalFolder, strLocalFileName), 'rb')
+                if FTPtype == 'bin':
+                    ftp.storbinary('STOR {}'.format(strRemoteFileName),
+                                   objOpenLocalFile, intBufSize)
+                elif FTPtype == 'asc':
+                    ftp.storlines('STOR {}'.format(
+                        strRemoteFileName), objOpenLocalFile)
+                ftp.set_debuglevel(0)
+                objOpenLocalFile.close()
+                return True
+            except Exception as E:
+                s.ShowErr(self.__class__.__name__,
+                          sys._getframe().f_code.co_name,
+                          'FTP Upload "{}" Fail with Error:'.format(
+                              self._host),
+                          E)
 
         if self._Connection:
-            return _putfile()
-        else:
-            self._FTPconnect()
             if _putfile():
                 return True
-            else:
-                s.ShowErrors('FTP Upload File Failed...',
-                             self.__class__.__name__)
+        else:
+            if self._FTPconnect():
+                if _putfile():
+                    return True
+            # else:
+            #     s.ShowErr('FTP Upload File Failed...',
+            #               self.__class__.__name__)
+            #     return
 
 
 class SSHConn(object):
@@ -135,7 +175,7 @@ class SSHConn(object):
         self._password = password
         self._client = None
         self._sftp = None
-        self._connect()
+        # self._connect()
 
     def _connect(self):
         try:
@@ -148,38 +188,41 @@ class SSHConn(object):
             self._client = objSSHClient
             return True
         except Exception as E:
-            s.ShowErrors('Connect to {} Failed'.format(self._host),
-                         self.__class__.__name__)
+            s.ShowErr(self.__class__.__name__,
+                      sys._getframe().f_code.co_name,
+                      'SSH Connect to {} Fail with Error:'.format(
+                          self._host),
+                      E)
 
-    def download(self, remotepath, localpath):
-        def _download():
-            if self._sftp is None:
-                self._sftp = self._client.open_sftp()
-            self._sftp.get(remotepath, localpath)
-        try:
-            _download()
-        except AttributeError as E:
-            print(__name__, E)
-            print('Download Failed,Not Connect to {}'.format(self._host))
-            return None
-        else:
-            print(__name__, E)
-            print('Download Failed ...')
+    # def download(self, remotepath, localpath):
+    #     def _download():
+    #         if self._sftp is None:
+    #             self._sftp = self._client.open_sftp()
+    #         self._sftp.get(remotepath, localpath)
+    #     try:
+    #         _download()
+    #     except AttributeError as E:
+    #         print(__name__, E)
+    #         print('Download Failed,Not Connect to {}'.format(self._host))
+    #         return None
+    #     else:
+    #         print(__name__, E)
+    #         print('Download Failed ...')
 
-    def upload(self, localpath, remotepath):
-        def _upload():
-            if self._sftp is None:
-                self._sftp = self._client.open_sftp()
-            self._sftp.put(localpath, remotepath)
-        try:
-            _upload()
-        except AttributeError as E:
-            print(__name__, E)
-            print('Upload Failed,Not Connect to {}'.format(self._host))
-            return None
-        else:
-            print(__name__, E)
-            print('Upload Failed ...')
+    # def upload(self, localpath, remotepath):
+    #     def _upload():
+    #         if self._sftp is None:
+    #             self._sftp = self._client.open_sftp()
+    #         self._sftp.put(localpath, remotepath)
+    #     try:
+    #         _upload()
+    #     except AttributeError as E:
+    #         print(__name__, E)
+    #         print('Upload Failed,Not Connect to {}'.format(self._host))
+    #         return None
+    #     else:
+    #         print(__name__, E)
+    #         print('Upload Failed ...')
 
     def ExecuteCommand(self, command):
         def GetRusult():
@@ -190,33 +233,26 @@ class SSHConn(object):
                 return data
             err = stderr.read()
             if len(err) > 0:
-                print(err.strip())
-                return err
+                print('''Excute Command "{}" Failed on "{}" With Error:
+    {}'''.format(command, self._host, err.strip()))
 
-        if self._client:
-            strResult = GetRusult()
+        def _return(strResult):
             if strResult:
                 return strResult
-            else:
-                s.ShowErrors('Command {} Execute Failed'.format(command),
-                             self.__class__.__name__)
+            # else:
+            #     s.ShowErr(self.__class__.__name__,
+            #               sys._getframe().f_code.co_name,
+            #               'Execute Command "{}" Fail with Error:'.format(
+            #                   self._host),
+            #               E)
+
+        if self._connect():
+            output = _return(GetRusult())
+            if output:
+                return output
+
         else:
-            self._connect()
-            strResult = GetRusult()
-            if strResult:
-                return strResult
-            else:
-                s.ShowErrors('Command {} Execute Failed'.format(command),
-                             self.__class__.__name__)
-
-        #     return GetRusult()
-        # else:
-        #     try:
-        #         self._connect()
-        #         return GetRusult()
-        #     except Exception as E:
-        #         print('Command {} Execute Failed...'.format(command))
-        #         return None
+            print('Please Check SSH Connection to {}'.format(self._host))
 
     def close(self):
         if self._client:
@@ -234,20 +270,26 @@ class HAAPConn(object):
         self._strCLIPrompt = 'CLI>'
         self._strCLIConflict = 'Another session owns the CLI'
         self._Connection = None
-        self._connect()
+        # self._connect()
 
-    @deco_Exception
+    # @deco_Exception
     def _connect(self):
-        objTelnetConnect = telnetlib.Telnet(self._host, self._port, timeout=3)
+        try:
+            objTelnetConnect = telnetlib.Telnet(
+                self._host, self._port, timeout=3)
 
-        objTelnetConnect.read_until(
-            self._strLoginPrompt.encode(encoding="utf-8"), timeout=2)
-        objTelnetConnect.write(self._password.encode(encoding="utf-8"))
-        objTelnetConnect.write(b'\r')
-        objTelnetConnect.read_until(
-            self._strMainMenuPrompt.encode(encoding="utf-8"), timeout=2)
-        self._Connection = objTelnetConnect
-        return True
+            objTelnetConnect.read_until(
+                self._strLoginPrompt.encode(encoding="utf-8"), timeout=2)
+            objTelnetConnect.write(self._password.encode(encoding="utf-8"))
+            objTelnetConnect.write(b'\r')
+            objTelnetConnect.read_until(
+                self._strMainMenuPrompt.encode(encoding="utf-8"), timeout=2)
+            self._Connection = objTelnetConnect
+            return True
+        except Exception as E:
+            s.ShowErr('Telnet Connect to {} Failed'.format(self._host),
+                      self.__class__.__name__)
+            return
 
         # objTelnetConnect.write(b'7')
 
@@ -269,11 +311,10 @@ class HAAPConn(object):
         # ------Handle the CLI Succesfully For Engine: {}
         #                     '''.format(self._strIP))
 
-    @deco_Exception
+    # @deco_Exception
     def ExecuteCommand(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")
-        # CLI = self._strCLIPrompt
         CLI_Conflict = self._strCLIConflict.encode(encoding="utf-8")
 
         def GetResult():
@@ -283,8 +324,8 @@ class HAAPConn(object):
                 CLI, timeout=3).decode())
             if self._strCLIPrompt in strResult:
                 return strResult
-            else:
-                return None
+            # else:
+            #     return
 
         def FindCLI():
             self._Connection.write(b'\r')
@@ -306,12 +347,18 @@ class HAAPConn(object):
         if self._Connection:
             return FindCLI()
         else:
-            self._connect()
-            if self._Connection:
+            if self._connect():
                 return FindCLI()
             else:
-                s.ShowErrors('Telnet To {} Failed...'.format(self._host),
-                             self.__class__.__name__)
+                print('Please Check Telnet Connection to {}'.format(
+                    self._host))
+
+            # self._connect()
+            # if self._Connection:
+            #     return FindCLI()
+            # else:
+            #     s.ShowErr('Telnet To {} Failed...'.format(self._host),
+            #                  self.__class__.__name__)
 
     def Close(self):
         if self._Connection:
@@ -342,6 +389,15 @@ if __name__ == '__main__':
     #         i += 1
     #     time.sleep(0.25)
 
-    bb = SSHConn('172.16.254.78', 22, 'admin', 'password', 5)
-    # print(bb.ExecuteCommand('switchshow'))
-    bb.download('abc', 'def')
+    # bb = SSHConn('127.0.0.1', 22, 'matthew', '.com', 2)
+    # x = bb.ExecuteCommand('switchshow')
+    # if x:
+    #     print(x)
+    # print(bb.ExecuteCommand('pwd'))
+
+    # cc = HAAPConn('127.0.0.7', 22, '.com', 5)
+    # cc.ExecuteCommand('abc')
+
+    # dd = FTPConn('127.0.0.7', 10021, 'matthew', '.com', 2)
+    # if dd.GetFile('.', '.', 'wp.txt', 'bbb'):
+    #     print('download wp.txt complate, store as bbb...')
