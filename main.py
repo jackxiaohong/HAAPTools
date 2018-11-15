@@ -144,6 +144,9 @@ def _get_SWInstance():
     return oddSWInst
 
 
+def _sw_switchshow(strSWIP):
+    _SW(strSWIP, [])._switchshow()
+
 # en-Instance ALL The HAAPs in the config file by IP...
 def _get_HAAPInstance():
     oddTNInst = Odd()
@@ -254,12 +257,10 @@ def main():
         if len(sys.argv) != 2:
             print(strHelpSingleCommand.format('porterrshow'))
         elif not _checkIPlst(lstSW):
-            print('IP error. Please check Switch IPs defined in Conf.ini')
+            print('IP error. Please check Switch IPs defined in "Conf.ini"')
         else:
             for i in range(len(lstSW)):
                 _SW(lstSW[i], lstSWPorts[i]).show_porterrors()
-                # oddSWInstance = _get_SWInstance()
-                # oddSWInstance[lstSW[i]].show_porterrors()
 
     elif sys.argv[1] == 'clearporterrorAll':
         if len(sys.argv) != 2:
@@ -267,8 +268,8 @@ def main():
         elif not _checkIPlst(lstSW):
             print('IP error. Please check Switch IPs defined in Conf.ini')
         else:
-            for i in lstSW:
-                _get_SWInstance()[i].clear_porterr_All()
+            for i in range(len(lstSW)):
+                _SW(lstSW[i], lstSWPorts[i]).clear_porterr_All()
 
     # save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local
     elif sys.argv[1] == 'CFGbackup':
@@ -289,8 +290,10 @@ def main():
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
             strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
-            for i in lstHAAP:
-                _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
+            # for i in lstHAAP:
+            #     _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
+            for i in range(len(lstHAAP)):
+                _HAAP(lstHAAP[i]).get_trace(strTraceFolder, intTLevel)
 
     elif sys.argv[1] == 'analyseHAAP':
         if len(sys.argv) != 2:
@@ -367,7 +370,8 @@ def main():
                 _ShowEngineInfo(i)
 
     elif sys.argv[1] == 'test':
-        print(len(sys.argv))
+
+        _SW(sys.argv[2], [])._switchshow()
 
     else:
         print(strHelp)

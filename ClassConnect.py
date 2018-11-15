@@ -47,9 +47,9 @@ class FTPConn(object):
                 # print(E)
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Connect to {} Fail with Error:'.format(
+                          'FTP Connect to "{}" Fail with Error:'.format(
                               self._host),
-                          E)
+                          '"{}"'.format(E))
                 return
 
         def _login():
@@ -61,9 +61,9 @@ class FTPConn(object):
                 # print(E)
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Login to {} Fail with Error:'.format(
+                          'FTP Login to "{}" Fail with Error:'.format(
                               self._host),
-                          E)
+                          '"{}"'.format(E))
                 return
 
         if _conn():
@@ -109,7 +109,7 @@ class FTPConn(object):
                           sys._getframe().f_code.co_name,
                           'FTP Download "{}" Fail with Error:'.format(
                               self._host),
-                          E)
+                          '"{}"'.format(E))
 
         if self._Connection:
             if _getfile():
@@ -190,7 +190,7 @@ class SSHConn(object):
         except Exception as E:
             s.ShowErr(self.__class__.__name__,
                       sys._getframe().f_code.co_name,
-                      'SSH Connect to {} Fail with Error:'.format(
+                      'SSH Connect to "{}" Fail with Error:'.format(
                           self._host),
                       E)
 
@@ -250,7 +250,6 @@ class SSHConn(object):
             output = _return(GetRusult())
             if output:
                 return output
-
         else:
             print('Please Check SSH Connection to {}'.format(self._host))
 
@@ -287,9 +286,11 @@ class HAAPConn(object):
             self._Connection = objTelnetConnect
             return True
         except Exception as E:
-            s.ShowErr('Telnet Connect to {} Failed'.format(self._host),
-                      self.__class__.__name__)
-            return
+            s.ShowErr(self.__class__.__name__,
+                          sys._getframe().f_code.co_name,
+                          'Telnet Connect to "{}" Fail with Error:'.format(
+                              self._host),
+                          '"{}"'.format(E))
 
         # objTelnetConnect.write(b'7')
 
@@ -350,7 +351,7 @@ class HAAPConn(object):
             if self._connect():
                 return FindCLI()
             else:
-                print('Please Check Telnet Connection to {}'.format(
+                print('Please Check Telnet Connection to "{}"'.format(
                     self._host))
 
             # self._connect()
@@ -365,40 +366,40 @@ class HAAPConn(object):
             self._Connection.close()
 
 
-# if __name__ == '__main__':
-#     # aa = HAAPConn('172.16.254.71', 23, '.com')
-#     # print(aa._Connection)
-#     # print(aa.ExecuteCommand('conmgr status'))
-#     # print(1)
-#     # time.sleep(3)
-#     # print(aa.ExecuteCommand('conmgr status'))
-#     # print(2)
-#     # time.sleep(3)
-#     # print(aa.ExecuteCommand('conmgr status'))
-#     # print(3)
-#     # time.sleep(3)
-#     # print(aa.ExecuteCommand('conmgr status'))
-#     # print(4)
+if __name__ == '__main__':
+    # aa = HAAPConn('172.16.254.71', 23, '.com')
+    # print(aa._Connection)
+    # print(aa.ExecuteCommand('conmgr status'))
+    # print(1)
+    # time.sleep(3)
+    # print(aa.ExecuteCommand('conmgr status'))
+    # print(2)
+    # time.sleep(3)
+    # print(aa.ExecuteCommand('conmgr status'))
+    # print(3)
+    # time.sleep(3)
+    # print(aa.ExecuteCommand('conmgr status'))
+    # print(4)
 
-#     # lstCommand = ['vpd', 'conmgr status', 'mirror', 'explore b1']
+    # lstCommand = ['vpd', 'conmgr status', 'mirror', 'explore b1']
 
-#     # for i in range(len(lstCommand)):
-#     #     result = aa.ExecuteCommand(lstCommand[i])
-#     #     if result:
-#     #         print result
-#     #         i += 1
-#     #     time.sleep(0.25)
+    # for i in range(len(lstCommand)):
+    #     result = aa.ExecuteCommand(lstCommand[i])
+    #     if result:
+    #         print result
+    #         i += 1
+    #     time.sleep(0.25)
 
-#     # bb = SSHConn('127.0.0.1', 22, 'matthew', '.com', 2)
-#     # x = bb.ExecuteCommand('switchshow')
-#     # if x:
-#     #     print(x)
-#     # print(bb.ExecuteCommand('pwd'))
+    bb = SSHConn('172.16.254.75', 22, 'admin', 'passwor', 2)
+    x = bb.ExecuteCommand('switchshow')
+    if x:
+        print(x)
+    print(bb.ExecuteCommand('pwd'))
 
-#     # cc = HAAPConn('127.0.0.7', 22, '.com', 5)
-#     # cc.ExecuteCommand('abc')
+    # cc = HAAPConn('127.0.0.7', 22, '.com', 5)
+    # cc.ExecuteCommand('abc')
 
-#     # dd = FTPConn('127.0.0.7', 10021, 'matthew', '.com', 2)
-#     # if dd.GetFile('.', '.', 'wp.txt', 'bbb'):
-#     #     print('download wp.txt complate, store as bbb...')
-#     pass
+    # dd = FTPConn('127.0.0.7', 10021, 'matthew', '.com', 2)
+    # if dd.GetFile('.', '.', 'wp.txt', 'bbb'):
+    #     print('download wp.txt complate, store as bbb...')
+    pass
