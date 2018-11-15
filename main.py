@@ -32,6 +32,7 @@ strHelp = '''
         -updateFW         : Update an <Engine>'s firmware based on <Firmware_File>
         -healthHAAP       : Show health status (AH) for All engines
         -infoHAAP         : Show overall Info for All engines     
+        -setTime          : Set date, day, and time as local time for All engines
         '''
 
 strAutoCLIHelp = '''
@@ -388,8 +389,21 @@ def main():
         else:
             _ShowEngineInfo()
 
+    elif sys.argv[1] == 'setTime':
+        if len(sys.argv) != 2:
+            print(strHelpSingleCommand.format('setTime'))
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini')
+        else:
+            for i in lstHAAP:
+                engine = _get_HAAPInstance()[i]
+                engine.set_engine_time()
+#                 print("\n" + engine.get_engine_time())
+                
+        
     elif sys.argv[1] == 'test':
         print(len(sys.argv))
+    
 
     else:
         print(strHelp)
