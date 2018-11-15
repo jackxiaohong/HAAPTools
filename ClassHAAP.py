@@ -5,6 +5,7 @@ from collections import OrderedDict
 import os
 import time
 import Source as s
+import datetime
 
 
 strOriFolder = os.getcwd()
@@ -359,13 +360,68 @@ class HAAP():
                 mr_st = "NOT ok"
         return [ip, uptime, ah, version, status, master, mr_st]
     
+    def set_engine_time(self):
+        def check_response(actual_response, cmd_line):
+            if actual_response is None:
+                return False
+            else:
+                return True
+            # More checks needs here
+#                 if actual_response == correct_response.format(cmd_line):
+#                     return True
+#                 else:
+#                     return False 
+            
+        def set_time():
+            now = datetime.datetime.now()
+            y = now.year
+            m = now.month
+            d = now.day
+            hr = now.hour
+            min = now.minute
+            sec = now.second
+            weekday = now.isoweekday()+1
+            if weekday>7: weekday=1
+            
+            command_date = 'rtc set date {} {} {}'.format(m, d, y-2000)
+            r1 = self._telnet_Connection.ExecuteCommand(command_date)
+            if not check_response(r1, command_date):
+                print("Execute 'rtc set date' failed for Engine {}".format(self._host))
+            
+            command_time = 'rtc set time {} {} {}'.format(hr, min, sec)
+            r2 = self._telnet_Connection.ExecuteCommand(command_time)
+            if not check_response(r2, command_time):
+                print("Execute 'rtc set time' failed".format(self._host))
+           
+            command_day = 'rtc set day {}'.format(weekday)
+            r3 = self._telnet_Connection.ExecuteCommand(command_day)
+            if not check_response(r3, command_day):
+                print("Execute 'rtc set day' failed".format(self._host))
+            else:
+                print("Successfully Set Time for Engine {}".format(self._host))
+            
+        if self._telnet_Connection:
+            set_time()
+        else:
+            self._telnet_connect()
+            set_time()
+            
+    def get_engine_time(self):
+        if self._telnet_Connection:
+            return self._telnet_Connection.ExecuteCommand('rtc')
+        else:
+            self._telnet_connect()
+            return self._telnet_Connection.ExecuteCommand('rtc')
+        
+        
+    
 
 if __name__ == '__main__':
-    aa = HAAP('172.16.254.72', 23, '.com', 21)
+    aa = HAAP('10.203.1.111', 23, '', 21)
 #     print(aa.get_vpd())
 #     print(aa.get_uptime('list'))
 #     a = HAAP('10.203.1.111', 23, '', 21)
-    print aa.get_vpd()
+    aa.set_engine_time()
 #     print a.get_engine_status()
 #     print a.get_engine_health()
 #     print a.get_uptime(command="human")
