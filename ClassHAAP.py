@@ -1,14 +1,12 @@
 import ClassConnect
 import re
-import collections
 from collections import OrderedDict
 import os
 import time
 import Source as s
-import sys
 
 
-def deco_GotoFolder(func):
+def deco_OutFromFolder(func):
     strOriFolder = os.getcwd()
 
     def _deco(self, *args, **kwargs):
@@ -56,39 +54,6 @@ class HAAP():
                                               self._password,
                                               self._timeout)
 
-    # def self._telnet_connect(self):
-    #     if self._FTP_Conn:
-    #         return self._FTP_Conn
-    #     else:
-    #         if self._telnet_connect():
-    #             return self._FTP_Conn
-    #         else:
-    #             print('FTP Connnect to {} Failed...'.format(self._host))
-    #             return
-
-    # def _make_TN_Conn(self):
-    #     if self._TN_Conn:
-    #         return self._TN_Conn
-    #     else:
-    #         if self._FTP_connect():
-    #             return self._TN_Conn
-    #         else:
-    #             print('FTP Connnect to {} Failed...'.format(self._host))
-    #             return
-
-    def _telnetExcute(self, strCMD):
-        return self._TN_Conn.ExecuteCommand(strCMD)
-
-    # def _ShowErrors(strError,
-    #                 className=self.__class__.__name__,
-    #                 funcName=sys._getframe().f_code.co_name):
-    #     return str('''
-    # Errors:
-    #     Class Name :   {}
-    #     Function name: {}
-    #     Error Message: {}
-    #         '''.format(className, funcName, strError))
-
     @deco_Exception
     def get_vpd(self):
         if self._TN_Conn:
@@ -97,8 +62,6 @@ class HAAP():
             self._telnet_connect()
             if self._TN_Conn:
                 return self._TN_Conn.ExecuteCommand('vpd')
-            else:
-                return
 
     @deco_Exception
     def get_engine_status(self):
@@ -115,12 +78,6 @@ class HAAP():
 
     @deco_Exception
     def get_engine_health(self):
-        # try:
-        #     strVPD_Info = self.get_vpd()
-        # except Exception as E:
-        #     print(E)
-        #     return
-
         strVPD_Info = self.get_vpd()
         reAL = re.compile(r'Alert:\s(\S*)')
         result_reAL = reAL.search(strVPD_Info)
@@ -226,15 +183,14 @@ class HAAP():
         else:
             print("get firmware version failed...")
 
-    @deco_GotoFolder
+    @deco_OutFromFolder
     def backup(self, strBaseFolder):
-
         s.GotoFolder(strBaseFolder)
         connFTP = self._FTP_Conn
         lstCFGFile = ['automap.cfg', 'cm.cfg', 'san.cfg']
         for strCFGFile in lstCFGFile:
             if connFTP.GetFile('bin_conf', '.', strCFGFile,
-                            'backup_{}_{}'.format(self._host, strCFGFile)):
+                               'backup_{}_{}'.format(self._host, strCFGFile)):
                 print('{} Backup Completely for {}'.format(
                     strCFGFile.ljust(12), self._host))
                 continue
@@ -265,7 +221,7 @@ class HAAP():
                     break
                 time.sleep(0.5)
 
-    @deco_GotoFolder
+    @deco_OutFromFolder
     def get_trace(self, strBaseFolder, intTraceLevel):
         tn = self._TN_Conn
         connFTP = self._FTP_Conn
@@ -318,38 +274,14 @@ class HAAP():
             except Exception as E:
                 # s.ShowErr(self.__class__.__name__,
                 #           sys._getframe().f_code.co_name,
-                #           'Get Trace "{}" Fail for Engine "{}",Error:'.format(
+                #           'Get Trace "{}" Fail for Engine "{}",\
+                # Error:'.format(
                 #               lstDescribe[i], self._host),
                 #           E)
                 break
-            # else:
-            #     if self._telnet_connect():
-            #         connFTP = self._FTP_Conn
-            #         _get_trace_file(lstCommand[i], lstDescribe[i])
-            #     else:
-            #         print('FTP To {} Failed...'.format(self._host))
-            #         continue
-
-            # if tn:
-            #     if connFTP:
-
-            #     else:
-            #         print('Please Check FTP Connection...')
-            # else:
-            #     print('Please Check Telnet Connection...')
             time.sleep(0.1)
-        # print(os.listdir(strBaseFolder))
-        # print(len(os.listdir(strBaseFolder)))
-        # if len(os.listdir(strBaseFolder)) == 0:
-        #     shutil.rmtree(strBaseFolder)
 
-        # try:
-        #     os.rmdir(strBaseFolder)
-        #     print('No Trace File Got, Delete Folder {}'.format(strBaseFolder))
-        # except OSError:
-        #     pass
-
-    #@deco_GotoFolder
+    @deco_OutFromFolder
     def periodic_check(self, lstCommand, strResultFolder, strResultFile):
         tn = self._TN_Conn
         s.GotoFolder(strResultFolder)
@@ -366,7 +298,6 @@ class HAAP():
                             strCMD)
                         # print(strErr)
                         f.write(strErr)
-####
 #             else:
 #                 strMsg = '''
 # ********************************************************************
@@ -379,10 +310,4 @@ class HAAP():
 
 
 if __name__ == '__main__':
-    aa = HAAP('172.16.254.72', 23, '.com', 21)
-    print(aa.get_vpd())
-    print(aa.get_uptime('list'))
-
-    #w = ClassConnect.FTPConn('172.16.254.71', 21, 'adminftp', '.com')
-
-    # print(w.getwelcome())
+    pass

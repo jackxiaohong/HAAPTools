@@ -3,18 +3,6 @@ from ClassConnect import *
 from collections import OrderedDict
 import re
 import Source as s
-import pprint
-
-
-def deco(func):
-    def _deco(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except Exception as E:
-            print('Please Check SAN Switch connection...')
-            print(func.__name__)
-            print(E)
-    return _deco
 
 
 def deco_Exception(func):
@@ -37,31 +25,29 @@ class SANSW(object):
         self._allSWPort = lstSWPort
         self._strAllPortError = None
         self._dicPartPortError = None
-        self._SANSWConnection = None
+        self._SWConn = None
         self._getporterrshow()
         self._PutErrorToDict()
 
     @deco_Exception
     def _getporterrshow(self):
         try:
-            self._SANSWConnection = SSHConn(self._host,
-                                     self._port,
-                                     self._username,
-                                     self._password,
-                                     self._timeout)
-            self._strAllPortError = self._SANSWConnection.ExecuteCommand('porterrshow')
+            self._SWConn = SSHConn(self._host,
+                                   self._port,
+                                   self._username,
+                                   self._password,
+                                   self._timeout)
+            self._strAllPortError = self._SWConn.ExecuteCommand(
+                'porterrshow')
             return True
         except Exception as E:
             s.ShowErr(self.__class__.__name__,
-                          sys._getframe().f_code.co_name,
-                          'Get PortErrorInfo for "{}" Fail with Error:'.format(
-                              self._host),
-                          E)
+                      sys._getframe().f_code.co_name,
+                      'Get PortErrorInfo for "{}" Fail with Error:'.format(
+                          self._host),
+                      '"%s"' % E)
 
-        # except Exception as E:
-        #     print('Connect to SAN Switch {} Failed...'.format(self._host))
-        #     print(E)
-
+    @deco_Exception
     def _PutErrorToDict(self):
         def _portInLine(intSWPort, strLine):
             lstLine = strLine.split()
@@ -87,21 +73,19 @@ class SANSW(object):
 
         if self._strAllPortError:
             _putToDict()
-        # else:
-        #     if self._getporterrshow():
-        #         _putToDict()
 
-
+    @deco_Exception
     def _porterrshow(self):
         if self._strAllPortError:
             print('Porterrshow for SAN Switch {}:\n'.format(self._host))
             print(self._strAllPortError)
 
+    @deco_Exception
     def _switchshow(self):
-        if self._SANSWConnection:
+        if self._SWConn:
             try:
                 print('Switchshow for SAN Switch {}:\n'.format(self._host))
-                print(self._SANSWConnection.ExecuteCommand('switchshow'))
+                print(self._SWConn.ExecuteCommand('switchshow'))
             except Exception as E:
                 pass
 
@@ -112,8 +96,6 @@ class SANSW(object):
                 return self._dicPartPortError[intSWPort][4]
             else:
                 return 'Please Correct the Port Number...'
-        else:
-            print('Please initialization SAN Switch connect first...')
 
     @deco_Exception
     def get_encout_by_port(self, intSWPort):
@@ -122,8 +104,6 @@ class SANSW(object):
                 return self._dicPartPortError[intSWPort][2]
             else:
                 print('Please Correct the Port Number...')
-        # else:
-        #     print('Get Error Dict First...')
 
     @deco_Exception
     def get_discC3_by_port(self, intSWPort):
@@ -132,8 +112,6 @@ class SANSW(object):
                 return self._dicPartPortError[intSWPort][3]
             else:
                 print('Please Correct the Port Number...')
-        # else:
-        #     print('Get Error Dict First...')
 
     @deco_Exception
     def get_encout_total(self):
@@ -148,9 +126,6 @@ class SANSW(object):
             return int_encoutTotal
         if self._dicPartPortError:
             return _get_count()
-        # else:
-        #     print('Get Error Dict First...')
-        #     return None
 
     @deco_Exception
     def get_discC3_total(self):
@@ -165,34 +140,27 @@ class SANSW(object):
             return int_encoutTotal
         if self._dicPartPortError:
             return _get_count()
-        # else:
-        #     print('Get Error Dict First...')
-        #     return None
 
     # @deco_Exception
     def clear_porterr_All(self):
-        if self._SANSWConnection:
-            try:
-                self._SANSWConnection.ExecuteCommand('statsclear')
-                print('Clear Error Count for SW "{}" Completely...'.format(self._host))
-            except Exception as E:
-                pass
-        else:
-            print('Connect to SAN Switch lost...')
+        try:
+            self._SWConn.ExecuteCommand('statsclear')
+            print('Clear Error Count for SW "{}" Completely...'.format(
+                self._host))
+            return True
+        except Exception as E:
+            print('Clear Error Count for SW "{}" Failed...'.format(self._host))
 
     @deco_Exception
     def clear_porterr_by_port(self, intSWPort):
-        if self._boolConnectStatus:
-            try:
-                self._SANSWConnection.ExecuteCommand(
-                    'portstatsclear {}'.format(str(intSWPort)))
-                return True
-            except Exception as E:
-                print('Clear Error Count Failed...')
-                return False
-        else:
-            print('Connect to SAN Switch lost...')
-            return False
+        try:
+            self._SWConn.ExecuteCommand(
+                'portstatsclear {}'.format(str(intSWPort)))
+            print('Clear Error Count of Port {} for SW "{}" Completely...\
+                '.format(str(intSWPort), self._host))
+            return True
+        except Exception as E:
+            print('Clear Error Count Failed...')
 
     @deco_Exception
     def show_porterrors(self):
@@ -210,9 +178,6 @@ class SANSW(object):
         if self._dicPartPortError:
             print('\nThe Ports Errors of SAN Switch {} ...'.format(self._host))
             _show_porterrors()
-        # else:
-        #     print('Get Error Dict First...')
-        #     return None
 
 
 if __name__ == '__main__':

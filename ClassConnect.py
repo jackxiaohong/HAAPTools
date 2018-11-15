@@ -3,7 +3,6 @@
 from ftplib import FTP
 import paramiko
 import telnetlib
-import time
 import sys
 import Source as s
 
@@ -14,12 +13,12 @@ def deco_Exception(func):
             return func(self, *args, **kwargs)
         except Exception as E:
             print('''
-    **************************************************************
-    Class Name:     {}
-    Function Name:  {}
-    Error Message:  {}
-            '''.format(self.__class__.__name__, func.__name__, E))
-            pass
+-------------------------------------------------------------------
+|    Class Name:     {38}|
+|    Function Name:  {38}|
+|    Error Message:  {38}|
+-------------------------------------------------------------------\
+'''.format(self.__class__.__name__, func.__name__, E))
     return _deco
 
 
@@ -44,13 +43,11 @@ class FTPConn(object):
                 self._connected = ftp
                 return True
             except Exception as E:
-                # print(E)
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
                           'FTP Connect to "{}" Fail with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
-                return
 
         def _login():
             try:
@@ -64,27 +61,11 @@ class FTPConn(object):
                           'FTP Login to "{}" Fail with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
-                return
 
         if _conn():
             if _login():
                 self._Connection = ftp
                 return True
-            else:
-                # s.ShowErr('FTP Login to {} Failed...'.format(
-                #     self._host), self.__class__.__name__)
-                return
-        # else:
-        #     if _conn():
-        #         if _login():
-        #             self._Connection = ftp
-        #         else:
-        #             s.ShowErr('FTP Login to {} Failed...'.format(
-        #                 self._host), self.__class__.__name__)
-        else:
-            # s.ShowErr('FTP Connect to {} Failed...'.format(self._host),
-                         # self.__class__.__name__)
-            return
 
     def GetFile(self, strRemoteFolder, strLocalFolder, strRemoteFileName,
                 strLocalFileName, FTPtype='bin', intBufSize=1024):
@@ -118,15 +99,6 @@ class FTPConn(object):
             if self._FTPconnect():
                 if _getfile():
                     return True
-                # else:
-                #     s.ShowErr('FTP Download "{}" Fail with Error:\n\t\t{}'.format(
-                #         self._host, E),
-                #         self.__class__.__name__,
-                #         sys._getframe().f_code.co_name)
-            # else:
-                # s.ShowErr('FTP Connect to {} Failed...'.format(
-                #     self._host), self.__class__.__name__)
-                pass
 
     def PutFile(self, strRemoteFolder, strLocalFolder, strRemoteFileName,
                 strLocalFileName, FTPtype='bin', intBufSize=1024):
@@ -151,7 +123,7 @@ class FTPConn(object):
                           sys._getframe().f_code.co_name,
                           'FTP Upload "{}" Fail with Error:'.format(
                               self._host),
-                          E)
+                          '"{}"'.format(E))
 
         if self._Connection:
             if _putfile():
@@ -160,10 +132,6 @@ class FTPConn(object):
             if self._FTPconnect():
                 if _putfile():
                     return True
-            # else:
-            #     s.ShowErr('FTP Upload File Failed...',
-            #               self.__class__.__name__)
-            #     return
 
 
 class SSHConn(object):
@@ -192,7 +160,7 @@ class SSHConn(object):
                       sys._getframe().f_code.co_name,
                       'SSH Connect to "{}" Fail with Error:'.format(
                           self._host),
-                      E)
+                      '"%s"' % E)
 
     # def download(self, remotepath, localpath):
     #     def _download():
@@ -234,7 +202,7 @@ class SSHConn(object):
             err = stderr.read()
             if len(err) > 0:
                 print('''Excute Command "{}" Failed on "{}" With Error:
-    {}'''.format(command, self._host, err.strip()))
+    "{}"'''.format(command, self._host, err.strip()))
 
         def _return(strResult):
             if strResult:
@@ -251,7 +219,7 @@ class SSHConn(object):
             if output:
                 return output
         else:
-            print('Please Check SSH Connection to {}'.format(self._host))
+            print('Please Check SSH Connection to "{}"'.format(self._host))
 
     def close(self):
         if self._client:
@@ -287,32 +255,11 @@ class HAAPConn(object):
             return True
         except Exception as E:
             s.ShowErr(self.__class__.__name__,
-                          sys._getframe().f_code.co_name,
-                          'Telnet Connect to "{}" Fail with Error:'.format(
-                              self._host),
-                          '"{}"'.format(E))
+                      sys._getframe().f_code.co_name,
+                      'Telnet Connect to "{}" Fail with Error:'.format(
+                          self._host),
+                      '"{}"'.format(E))
 
-        # objTelnetConnect.write(b'7')
-
-        # strOutPut = objTelnetConnect.read_until(
-        #     self._strCLIPrompt.encode(encoding="utf-8"), timeout=2)
-        # if int(strOutPut.find(self._strCLIPrompt.encode(
-        #         encoding="utf-8"))) > 0:
-        #     self._Connection = objTelnetConnect
-        #     time.sleep(0.25)
-        # elif int(strOutPut.find(self._strCLIConflict.encode(
-        #         encoding="utf-8"))) > 0:
-        #     objTelnetConnect.write(b'y' + b'\r')
-        #     strOutPut = objTelnetConnect.read_until(
-        #         self._strCLIPrompt.encode(encoding="utf-8"), timeout=2)
-        #     if int(strOutPut.find(self._strCLIPrompt.encode(
-        #             encoding="utf-8"))) > 0:
-
-        #                 print('''
-        # ------Handle the CLI Succesfully For Engine: {}
-        #                     '''.format(self._strIP))
-
-    # @deco_Exception
     def ExecuteCommand(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")
@@ -325,8 +272,6 @@ class HAAPConn(object):
                 CLI, timeout=3).decode())
             if self._strCLIPrompt in strResult:
                 return strResult
-            # else:
-            #     return
 
         def FindCLI():
             self._Connection.write(b'\r')
@@ -353,13 +298,6 @@ class HAAPConn(object):
             else:
                 print('Please Check Telnet Connection to "{}"'.format(
                     self._host))
-
-            # self._connect()
-            # if self._Connection:
-            #     return FindCLI()
-            # else:
-            #     s.ShowErr('Telnet To {} Failed...'.format(self._host),
-            #                  self.__class__.__name__)
 
     def Close(self):
         if self._Connection:
@@ -390,11 +328,11 @@ if __name__ == '__main__':
     #         i += 1
     #     time.sleep(0.25)
 
-    bb = SSHConn('172.16.254.75', 22, 'admin', 'passwor', 2)
-    x = bb.ExecuteCommand('switchshow')
-    if x:
-        print(x)
-    print(bb.ExecuteCommand('pwd'))
+    # bb = SSHConn('172.16.254.75', 22, 'admin', 'passwor', 2)
+    # x = bb.ExecuteCommand('switchshow')
+    # if x:
+    #     print(x)
+    # print(bb.ExecuteCommand('pwd'))
 
     # cc = HAAPConn('127.0.0.7', 22, '.com', 5)
     # cc.ExecuteCommand('abc')

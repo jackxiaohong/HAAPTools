@@ -3,15 +3,16 @@ import os
 import sys
 
 
-def ShowErr(_class, _func, _Msg, _Error = ''):
+def ShowErr(_class, _func, _Msg, _Error=''):
     print(str('''
-*******************************************************************
-Error Message:
-    Class Name :   {}
-    Function name: {}
-    Error Message: {}
-        {}
-    '''.format(_class, _func, _Msg, _Error)))
+-------------------------------------------------------------------
+|*Error Message:
+|    Class Name :   {:<46}
+|    Function name: {:<46}
+|    Error Message: {:<46}
+|        {:<57}
+-------------------------------------------------------------------\
+'''.format(_class, _func, _Msg, _Error)))
 
 
 def GotoFolder(strFolder):
@@ -23,17 +24,16 @@ def GotoFolder(strFolder):
                 os.makedirs(strFolder)
                 return True
             except Exception as E:
-                print(__name__, E)
-                print('Create Folder {} Failed...'.format(strFolder))
-                return False
-    try:
-        if _mkdir():
+                print('Create Folder {} Fail With Error:\n\t{}'.format(
+                    strFolder, E))
+
+    if _mkdir():
+        try:
             os.chdir(strFolder)
             return True
-    except Exception as E:
-        print(__name__, E)
-        print('Change to Folder {} Failed...'.format(strFolder))
-        return False
+        except Exception as E:
+            print('Change to Folder {} Fail With Error:\n\t{}'.format(
+                strFolder, E))
 
 
 def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):

@@ -1,4 +1,5 @@
 # coding:utf-8
+
 import ClassSW as sw
 import ClassHAAP as haap
 import Source as s
@@ -7,7 +8,6 @@ import os
 import sys
 import datetime
 import getpass
-import pprint
 import re
 
 try:
@@ -18,7 +18,7 @@ except Exception:
 # <<<Help String Feild>>>
 strHelp = '''
         Command             Description
-        
+
         -porterrshow      : Show PortError collected from SAN switches
         -clearporterrorAll: Clear ALL Ports' PortError Counter on SAN switches
 
@@ -60,7 +60,6 @@ strHelpSingleCommand = '''
 # <<<Read Config File Field>>>
 objCFG = cp.ConfigParser(allow_no_value=True)
 objCFG.read('Conf.ini')
-# <<<Read Config File Field>>>
 
 
 # <<<SAN Switch Config>>>
@@ -115,10 +114,11 @@ strCFGFolder = objCFG.get('FolderSetting', 'cfgbackup')
 # PCFolder = HAAP Periodic Check Result Folder
 strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 # <<<Folder Config>>>
-
+# <<<Read Config File Field>>>
 
 # <<<Inside Function Feild>>>
 # ################################################
+
 
 def _get_TimeNow():
     return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
@@ -148,6 +148,8 @@ def _sw_switchshow(strSWIP):
     _SW(strSWIP, [])._switchshow()
 
 # en-Instance ALL The HAAPs in the config file by IP...
+
+
 def _get_HAAPInstance():
     oddTNInst = Odd()
     for i in range(len(lstHAAP)):
@@ -160,7 +162,8 @@ def _get_HAAPInstance():
 def _TraceAnalyse(strDesFolder):
     s.TraceAnalyse(oddHAAPErrorDict, strDesFolder)
 
-# execute periodic-check commands (defined in Config.ini), print and save results in PCFolder
+# execute periodic-check commands (defined in Config.ini),\
+# print and save results in PCFolder
 
 
 def _periodic_check(strEngineIP):
@@ -169,9 +172,8 @@ def _periodic_check(strEngineIP):
                                       'PC_{}_{}.log'.format(
                                           _get_TimeNow(), strEngineIP))
 
+
 # execute cmds in file and print the results
-
-
 def _AutoCLI(strEngineIP, CMDFile):
     _HAAP(strEngineIP).execute_multi_command(CMDFile)
 
