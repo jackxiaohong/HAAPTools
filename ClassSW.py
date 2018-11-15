@@ -28,7 +28,7 @@ def deco_Exception(func):
 
 class SANSW(object):
     def __init__(self, strIP, intPort, strUserName, strPasswd,
-                 lstSWPort, intTimeout=5):
+                 lstSWPort, intTimeout=2):
         self._host = strIP
         self._port = intPort
         self._username = strUserName
@@ -82,11 +82,11 @@ class SANSW(object):
 
         if self._strAllPortError:
             _putToDict()
-        else:
-            if self._getporterrshow():
-                _putToDict()
-            else:
-                s.ShowErrors('Can Not get porterror info ...')
+        # else:
+        #     if self._getporterrshow():
+        #         _putToDict()
+            # else:
+            #     s.ShowErr('Can Not get porterror info ...')
 
     @deco_Exception
     def get_linkfail_by_port(self, intSWPort):
@@ -207,17 +207,18 @@ class SANSW(object):
 
 if __name__ == '__main__':
     lstPort = [2, 3, 4, 5]
-    sw1 = SANSW('172.16.254.75', 22, 'admin', 'password', lstPort)
+    sw1 = SANSW('172.16.254.77', 22, 'admin', 'password', lstPort)
     # pprint.pprint(sw1._dicPartPortError)
     # print(sw1.get_encout_total())
     # print(sw1.get_discC3_total())
-    print(sw1.get_discC3_by_port(3))
-    # print(sw1.get_encout_by_port(20))
-    # print(sw1.get_linkfail_by_port(4))
-    # sw1.clear_porterr_by_port(3)
-    # print(sw1.get_encout_by_port(2))
-    sw1._dicPartPortError = None
-    print(sw1.get_discC3_by_port(3))
+    # print(sw1.get_discC3_by_port(3))
+    # # print(sw1.get_encout_by_port(20))
+    # # print(sw1.get_linkfail_by_port(4))
+    # # sw1.clear_porterr_by_port(3)
+    # # print(sw1.get_encout_by_port(2))
+    # sw1._dicPartPortError = None
+    # print(sw1.get_discC3_by_port(3))
+    print(sw1.show_porterrors())
     # print(sw1.get_encout_by_port(3))
     # lstSW = ['172.16.254.75', '172.16.254.76']
 

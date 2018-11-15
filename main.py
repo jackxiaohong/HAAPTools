@@ -139,7 +139,8 @@ def _SW(strSWIP, lstSWPorts):
 def _get_SWInstance():
     oddSWInst = Odd()
     for i in range(len(lstSW)):
-        oddSWInst[lstSW[i]] = _SW(lstSW[i], lstSWPorts[i])
+        oddSWInst[lstSW[i]] = sw.SANSW(lstSW[i], intSWSSHPort,
+                                       strSWUser, strSWPWD, lstSWPorts[i])
     return oddSWInst
 
 
@@ -255,8 +256,10 @@ def main():
         elif not _checkIPlst(lstSW):
             print('IP error. Please check Switch IPs defined in Conf.ini')
         else:
-            for i in lstSW:
-                _get_SWInstance()[i].show_porterrors()
+            for i in range(len(lstSW)):
+                _SW(lstSW[i], lstSWPorts[i]).show_porterrors()
+                # oddSWInstance = _get_SWInstance()
+                # oddSWInstance[lstSW[i]].show_porterrors()
 
     elif sys.argv[1] == 'clearporterrorAll':
         if len(sys.argv) != 2:

@@ -153,3 +153,10 @@ if __name__ == '__main__':
     #     showFunc()
 
     # i()
+
+
+    a = 'ABCD'
+    print('"%s - %s"' % (a, a))
+    print('I am a %8s----\
+%d' % (a, 8))
+    # print(f"{a}")

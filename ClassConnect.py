@@ -365,39 +365,40 @@ class HAAPConn(object):
             self._Connection.close()
 
 
-if __name__ == '__main__':
-    # aa = HAAPConn('172.16.254.71', 23, '.com')
-    # print(aa._Connection)
-    # print(aa.ExecuteCommand('conmgr status'))
-    # print(1)
-    # time.sleep(3)
-    # print(aa.ExecuteCommand('conmgr status'))
-    # print(2)
-    # time.sleep(3)
-    # print(aa.ExecuteCommand('conmgr status'))
-    # print(3)
-    # time.sleep(3)
-    # print(aa.ExecuteCommand('conmgr status'))
-    # print(4)
+# if __name__ == '__main__':
+#     # aa = HAAPConn('172.16.254.71', 23, '.com')
+#     # print(aa._Connection)
+#     # print(aa.ExecuteCommand('conmgr status'))
+#     # print(1)
+#     # time.sleep(3)
+#     # print(aa.ExecuteCommand('conmgr status'))
+#     # print(2)
+#     # time.sleep(3)
+#     # print(aa.ExecuteCommand('conmgr status'))
+#     # print(3)
+#     # time.sleep(3)
+#     # print(aa.ExecuteCommand('conmgr status'))
+#     # print(4)
 
-    # lstCommand = ['vpd', 'conmgr status', 'mirror', 'explore b1']
+#     # lstCommand = ['vpd', 'conmgr status', 'mirror', 'explore b1']
 
-    # for i in range(len(lstCommand)):
-    #     result = aa.ExecuteCommand(lstCommand[i])
-    #     if result:
-    #         print result
-    #         i += 1
-    #     time.sleep(0.25)
+#     # for i in range(len(lstCommand)):
+#     #     result = aa.ExecuteCommand(lstCommand[i])
+#     #     if result:
+#     #         print result
+#     #         i += 1
+#     #     time.sleep(0.25)
 
-    # bb = SSHConn('127.0.0.1', 22, 'matthew', '.com', 2)
-    # x = bb.ExecuteCommand('switchshow')
-    # if x:
-    #     print(x)
-    # print(bb.ExecuteCommand('pwd'))
+#     # bb = SSHConn('127.0.0.1', 22, 'matthew', '.com', 2)
+#     # x = bb.ExecuteCommand('switchshow')
+#     # if x:
+#     #     print(x)
+#     # print(bb.ExecuteCommand('pwd'))
 
-    # cc = HAAPConn('127.0.0.7', 22, '.com', 5)
-    # cc.ExecuteCommand('abc')
+#     # cc = HAAPConn('127.0.0.7', 22, '.com', 5)
+#     # cc.ExecuteCommand('abc')
 
-    # dd = FTPConn('127.0.0.7', 10021, 'matthew', '.com', 2)
-    # if dd.GetFile('.', '.', 'wp.txt', 'bbb'):
-    #     print('download wp.txt complate, store as bbb...')
+#     # dd = FTPConn('127.0.0.7', 10021, 'matthew', '.com', 2)
+#     # if dd.GetFile('.', '.', 'wp.txt', 'bbb'):
+#     #     print('download wp.txt complate, store as bbb...')
+#     pass
