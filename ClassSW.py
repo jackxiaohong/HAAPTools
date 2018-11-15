@@ -22,13 +22,13 @@ def deco_Exception(func):
         try:
             return func(self, *args, **kwargs)
         except Exception as E:
-            print(func.__name__, E)
+            print(self._host, func.__name__, E)
     return _deco
 
 
 class SANSW(object):
     def __init__(self, strIP, intPort, strUserName, strPasswd,
-                 lstSWPort, intTimeout=5):
+                 lstSWPort, intTimeout=2):
         self._host = strIP
         self._port = intPort
         self._username = strUserName
@@ -41,15 +41,22 @@ class SANSW(object):
         self._getporterrshow()
         self._PutErrorToDict()
 
+    @deco_Exception
     def _getporterrshow(self):
-        objConnectToSW = SSHConn(self._host,
-                                 self._port,
-                                 self._username,
-                                 self._password,
-                                 self._timeout)
-        self._SANSWConnection = objConnectToSW
-        self._strAllPortError = objConnectToSW.ExecuteCommand(
-            'porterrshow')
+        try:
+            self._SANSWConnection = SSHConn(self._host,
+                                     self._port,
+                                     self._username,
+                                     self._password,
+                                     self._timeout)
+            self._strAllPortError = self._SANSWConnection.ExecuteCommand('porterrshow')
+            return True
+        except Exception as E:
+            s.ShowErr(self.__class__.__name__,
+                          sys._getframe().f_code.co_name,
+                          'Get PortErrorInfo for "{}" Fail with Error:'.format(
+                              self._host),
+                          E)
 
         # except Exception as E:
         #     print('Connect to SAN Switch {} Failed...'.format(self._host))
@@ -60,8 +67,6 @@ class SANSW(object):
             lstLine = strLine.split()
             if (str(intSWPort) + ':') in lstLine:
                 return True
-            else:
-                return False
 
         def _getErrorAsList(intPortNum, lstPortErrLines):
             for portErrLine in lstPortErrLines:
@@ -82,11 +87,25 @@ class SANSW(object):
 
         if self._strAllPortError:
             _putToDict()
-        else:
-            if self._getporterrshow():
-                _putToDict()
-            else:
-                s.ShowErrors('Can Not get porterror info ...')
+        # else:
+        #     if self._getporterrshow():
+        #         _putToDict()
+        #     else:
+        #         print('Can Not get porterror info ...')
+
+
+    def _porterrshow(self):
+        if self._strAllPortError:
+            print('Porterrshow for SAN Switch {}:\n'.format(self._host))
+            print(self._strAllPortError)
+
+    def _switchshow(self):
+        if self._SANSWConnection:
+            try:
+                print('Switchshow for SAN Switch {}:\n'.format(self._host))
+                print(self._SANSWConnection.ExecuteCommand('switchshow'))
+            except Exception as E:
+                pass
 
     @deco_Exception
     def get_linkfail_by_port(self, intSWPort):
@@ -97,7 +116,6 @@ class SANSW(object):
                 return 'Please Correct the Port Number...'
         else:
             print('Please initialization SAN Switch connect first...')
-            return None
 
     @deco_Exception
     def get_encout_by_port(self, intSWPort):
@@ -106,10 +124,8 @@ class SANSW(object):
                 return self._dicPartPortError[intSWPort][2]
             else:
                 print('Please Correct the Port Number...')
-                return None
-        else:
-            print('Get Error Dict First...')
-            return None
+        # else:
+        #     print('Get Error Dict First...')
 
     @deco_Exception
     def get_discC3_by_port(self, intSWPort):
@@ -118,10 +134,8 @@ class SANSW(object):
                 return self._dicPartPortError[intSWPort][3]
             else:
                 print('Please Correct the Port Number...')
-                return None
-        else:
-            print('Get Error Dict First...')
-            return None
+        # else:
+        #     print('Get Error Dict First...')
 
     @deco_Exception
     def get_encout_total(self):
@@ -136,9 +150,9 @@ class SANSW(object):
             return int_encoutTotal
         if self._dicPartPortError:
             return _get_count()
-        else:
-            print('Get Error Dict First...')
-            return None
+        # else:
+        #     print('Get Error Dict First...')
+        #     return None
 
     @deco_Exception
     def get_discC3_total(self):
@@ -153,22 +167,20 @@ class SANSW(object):
             return int_encoutTotal
         if self._dicPartPortError:
             return _get_count()
-        else:
-            print('Get Error Dict First...')
-            return None
+        # else:
+        #     print('Get Error Dict First...')
+        #     return None
 
-    @deco_Exception
+    # @deco_Exception
     def clear_porterr_All(self):
         if self._SANSWConnection:
             try:
                 self._SANSWConnection.ExecuteCommand('statsclear')
-                return True
+                print('Clear Error Count for SW "{}" Completely...'.format(self._host))
             except Exception as E:
-                print('Clear Error Count Failed...')
-                return False
+                pass
         else:
             print('Connect to SAN Switch lost...')
-            return False
 
     @deco_Exception
     def clear_porterr_by_port(self, intSWPort):
@@ -200,24 +212,24 @@ class SANSW(object):
         if self._dicPartPortError:
             print('\nThe Ports Errors of SAN Switch {} ...'.format(self._host))
             _show_porterrors()
-        else:
-            print('Get Error Dict First...')
-            return None
+        # else:
+        #     print('Get Error Dict First...')
+        #     return None
 
 
 if __name__ == '__main__':
     lstPort = [2, 3, 4, 5]
-    sw1 = SANSW('172.16.254.75', 22, 'admin', 'password', lstPort)
+    sw1 = SANSW('172.16.254.78', 22, 'admin', 'password', lstPort)
     # pprint.pprint(sw1._dicPartPortError)
     # print(sw1.get_encout_total())
     # print(sw1.get_discC3_total())
-    print(sw1.get_discC3_by_port(3))
+    print(sw1.show_porterrors())
     # print(sw1.get_encout_by_port(20))
     # print(sw1.get_linkfail_by_port(4))
     # sw1.clear_porterr_by_port(3)
     # print(sw1.get_encout_by_port(2))
-    sw1._dicPartPortError = None
-    print(sw1.get_discC3_by_port(3))
+    # sw1._dicPartPortError = None
+    # print(sw1.get_discC3_by_port(3))
     # print(sw1.get_encout_by_port(3))
     # lstSW = ['172.16.254.75', '172.16.254.76']
 

@@ -233,10 +233,13 @@ class HAAP():
         connFTP = self._FTP_Conn
         lstCFGFile = ['automap.cfg', 'cm.cfg', 'san.cfg']
         for strCFGFile in lstCFGFile:
-            connFTP.GetFile('bin_conf', '.', strCFGFile,
-                            'backup_{}_{}'.format(self._host, strCFGFile))
-            print('{} Backup Completely for {}'.format(
-                strCFGFile.ljust(12), self._host))
+            if connFTP.GetFile('bin_conf', '.', strCFGFile,
+                            'backup_{}_{}'.format(self._host, strCFGFile)):
+                print('{} Backup Completely for {}'.format(
+                    strCFGFile.ljust(12), self._host))
+                continue
+            else:
+                break
             time.sleep(0.25)
 
     @deco_Exception
@@ -260,7 +263,7 @@ class HAAP():
                     print('\rExecute Command "{}" Failed ...'.format(
                         strCMD))
                     break
-                time.sleep(1)
+                time.sleep(0.5)
 
     @deco_GotoFolder
     def get_trace(self, strBaseFolder, intTraceLevel):
@@ -311,13 +314,14 @@ class HAAP():
         for i in range(len(lstDescribe)):
             try:
                 _get_trace_file(lstCommand[i], lstDescribe[i])
-            except Exception as E:
-                s.ShowErr(self.__class__.__name__,
-                          sys._getframe().f_code.co_name,
-                          'Get Trace "{}" Fail for Engine "{}",Error:'.format(
-                              lstDescribe[i], self._host),
-                          E)
                 continue
+            except Exception as E:
+                # s.ShowErr(self.__class__.__name__,
+                #           sys._getframe().f_code.co_name,
+                #           'Get Trace "{}" Fail for Engine "{}",Error:'.format(
+                #               lstDescribe[i], self._host),
+                #           E)
+                break
             # else:
             #     if self._telnet_connect():
             #         connFTP = self._FTP_Conn
@@ -345,22 +349,33 @@ class HAAP():
         # except OSError:
         #     pass
 
-    @deco_GotoFolder
+    #@deco_GotoFolder
     def periodic_check(self, lstCommand, strResultFolder, strResultFile):
         tn = self._TN_Conn
+        s.GotoFolder(strResultFolder)
         with open(strResultFile, 'w') as f:
-            for strCMD in lstCommand:
-                time.sleep(0.5)
-                strResult = tn.ExecuteCommand(strCMD)
-                if strResult:
-                    print(strResult)
-                    f.write(strResult)
-                else:
-                    strErr = '\n*** Execute Command "{}" Failed\n'.format(
-                        strCMD)
-                    print(strErr)
-                    f.write(strErr)
-                    continue
+            if tn.ExecuteCommand('\n'):
+                for strCMD in lstCommand:
+                    time.sleep(0.5)
+                    strResult = tn.ExecuteCommand(strCMD)
+                    if strResult:
+                        print(strResult)
+                        f.write(strResult)
+                    else:
+                        strErr = '\n*** Execute Command "{}" Failed\n'.format(
+                            strCMD)
+                        # print(strErr)
+                        f.write(strErr)
+####
+#             else:
+#                 strMsg = '''
+# ********************************************************************
+# Error Message:
+#     Connet Failed
+#     Please Check Connection of Engine "{}" ...
+# ********************************************************************'''.format(self._host)
+#                 print(strMsg)
+#                 f.write(strMsg)
 
 
 if __name__ == '__main__':
