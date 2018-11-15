@@ -58,19 +58,20 @@ class HAAP():
     @deco_Exception
     def get_vpd(self):
         if self._telnet_Connection:
-            return self._telnet_Connection.ExecuteCommand('vpd')
+            return self._telnet_Connection.ExecuteCommand('vpd') #None to result string
         else:
             self._telnet_connect()
-            return self._telnet_Connection.ExecuteCommand('vpd')
+            return self._telnet_Connection.ExecuteCommand('vpd') #None to result string
 
-    @deco_Exception
     def get_engine_status(self):
         if self._telnet_Connection:
             strEnter = self._telnet_Connection.ExecuteCommand('')
         else:
             self._telnet_connect()
             strEnter = self._telnet_Connection.ExecuteCommand('')
-        if strEnter is not None:
+        if strEnter is None:
+            print("Get Status Failed for Engine {}".format(self._host))
+        else:
             reCLI = re.compile(r'CLI>')
             if reCLI.search(strEnter):
                 return "ONLINE"
@@ -80,11 +81,13 @@ class HAAP():
     def get_engine_health(self, strVPD_Info=None):
         if strVPD_Info is None:
             strVPD_Info = self.get_vpd()
-        if strVPD_Info is not None:
+        if strVPD_Info is None:
+            print("Get Health Status Failed for Engine {}".format(self._host))
+        else:            
             reAL = re.compile(r'Alert:\s(\S*)')
             result_reAL = reAL.search(strVPD_Info)
             if result_reAL is None:
-                print("get engine health status failed...")
+                print("Get Health Status Failed for Engine {}".format(self._host))
             else:
                 if result_reAL.group(1) == "None":
                     return 0 # 0 means engine is healthy
@@ -94,13 +97,15 @@ class HAAP():
     def get_uptime(self, command="human", strVPD_Info=None):
         if strVPD_Info is None:
             strVPD_Info = self.get_vpd()
-        if strVPD_Info is not None:
+        if strVPD_Info is None:
+            print("Get Uptime Failed for Engine {}".format(self._host))
+        else:
             reUpTime = re.compile(
                 r'Uptime\s*:\s*((\d*)d*\s*(\d{2}):(\d{2}):(\d{2}))')
             result_reUptTime = reUpTime.search(strVPD_Info)
     
             if result_reUptTime is None:
-                print("get uptime failed...")
+                print("Get Uptime Failed for Engine {}".format(self._host))
             else:
                 # return uptime in string
                 if command == "human":
@@ -127,10 +132,11 @@ class HAAP():
             self._telnet_connect()
             strEngine_info = self._telnet_Connection.ExecuteCommand('engine')
 
-        if strEngine_info is not None:
-            # make sure we can get engine info
+        if strEngine_info is None:
+             print("Get Master Info Failed for Engine {}".format(self._host))
+        else:
             if re.search(r'>>', strEngine_info) is None:
-                print("get engine info failed...")
+                print("Get Master Info Failed for Engine {}".format(self._host))
             else:
                 # e.g. ">> 1  (M)" means current engine is master
                 reMaster = re.compile(r'(>>)\s*\d*\s*(\(M\))')
@@ -151,7 +157,9 @@ class HAAP():
     def get_mirror_status(self, strMirror=None):
         if strMirror is None:
             strMirror = self.get_mirror_info()
-        if strMirror is not None:
+        if strMirror is None:
+            print ("Get Mirror Status Failed for Engine {}".format(self._host))
+        else:
             reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  # e.g." 33281(0x8201)"
             reNoMirror = re.compile(r'No mirrors defined')
     
@@ -177,18 +185,20 @@ class HAAP():
                 if reNoMirror.search(strMirror):
                     return -1 #-1 means no mirror defined
                 else:
-                    print("get mirror status failed...")
+                    print("Get Mirror Status Failed for Engine {}".format(self._host))
 
     def get_version(self, strVPD_Info=None):
         if strVPD_Info is None:
             strVPD_Info = self.get_vpd()
-        if strVPD_Info is not None:
+        if strVPD_Info is None:
+            print("Get Firmware Version Failed for Engine {}".format(self._host))
+        else:
             reFirmware = re.compile(r'Firmware\sV\d+(.\d+)*')
             resultFW = reFirmware.search(strVPD_Info)
             if resultFW:
                 return resultFW.group()
             else:
-                print("get firmware version failed...")
+                print("Get Firmware Version Failed for Engine {}".format(self._host))
 
     @deco_GotoFolder(strOriFolder)
     def backup(self, strBaseFolder):
@@ -322,9 +332,10 @@ class HAAP():
        
         ip = self._host
         uptime = self.get_uptime(strVPD_Info=strVPD)
-        if self.get_engine_health(strVPD_Info=strVPD): 
+        ah = self.get_engine_health(strVPD_Info=strVPD)
+        if ah == 1: 
             ah = "AH"
-        else: 
+        elif ah == 0: 
             ah = "None"
         
         version = self.get_version(strVPD_Info=strVPD)

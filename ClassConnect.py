@@ -233,6 +233,12 @@ class HAAPConn(object):
             return None
             print("------Goto CLI Failed For Engine: " + self._host, E)
 
+    def _get_connection(self):
+        if self._Connection:
+            return True
+        else:
+            return False
+        
     def ExecuteCommand(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")
@@ -278,7 +284,8 @@ class HAAPConn(object):
     def Close(self):
         if self._Connection:
             self._Connection.close()
-
+    
+    connection = property(_get_connection, doc="Get HAAPConn instance's connection")
 
 if __name__ == '__main__':
     aa = HAAPConn('172.16.254.71', 23, '.com')
