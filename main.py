@@ -28,10 +28,11 @@ strHelp = '''
         -CFGbackup        : Save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local 
         -autoCLI          : Execute commands listed in <File> on an <Engine>
         -pc               : Execute periodic-check commands on an <Engine>
-        -pcAll            : Execute periodic-check commands on ALL Engines
+        -pcALL            : Execute periodic-check commands on ALL Engines
         -updateFW         : Update an <Engine>'s firmware based on <Firmware_File>
         -healthHAAP       : Show health status (AH) for All engines
         -infoHAAP         : Show overall Info for All engines     
+        -setTime          : Set date, day, and time as local time for All engines
         '''
 
 strAutoCLIHelp = '''
@@ -184,35 +185,61 @@ def _FWUpdate(strEngineIP, strFWFile):
 
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
-    if alert:
-        print(strEngineIP + ":" + "AH")
-    else:
-        print(strEngineIP + ":" + "OK")
-
-
-def _ShowEngineInfo(strEngineIP):
-    engineIns = _HAAP(strEngineIP)
-    print("{:<17s}:".format("Engine IP"), strEngineIP)
-    print("{:<17s}:".format("Status"), engineIns.get_engine_status())
-    print("{:<17s}:".format("Firmware version"), engineIns.get_version())
-    print("{:<17s}:".format("Uptime"), engineIns.get_uptime())
-
-    if engineIns.get_engine_health():
-        print("{:<17s}: AH".format("Alert Halt"))
-    else:
-        print("{:<17s}: None".format("Alert Halt"))
-
-    if engineIns.is_master_engine():
-        print("{:<17s}: Yes".format("Master"))
-    else:
-        print("{:<17s}: No".format("Master"))
-
-    mirror_status = engineIns.get_mirror_status()
-    if not mirror_status:
-        print("{:<17s}: All OK\n".format("Mirror status"))
-    else:
-        print("{:<17s}: \n".format("Mirror status"), mirror_status, "\n")
-
+    if alert is not None: 
+        if alert: al_st = "AH"
+        else: al_st = "OK"
+        print("{}: {}".format(strEngineIP, al_st))
+        
+# def _ShowEngineInfo(strEngineIP):
+#     engineIns = _HAAP(strEngineIP)
+#     print "{:<17s}:".format("Engine IP"), strEngineIP
+#     print "{:<17s}:".format("Status"), engineIns.get_engine_status()
+#     print "{:<17s}:".format("Firmware version"), engineIns.get_version()
+#     print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
+#      
+#     if engineIns.get_engine_health():
+#         print "{:<17s}: AH".format("Alert Halt")
+#     else:
+#         print "{:<17s}: None".format("Alert Halt")
+#      
+#     if engineIns.is_master_engine():
+#         print "{:<17s}: Yes".format("Master")
+#     else:
+#         print "{:<17s}: No".format("Master")
+#      
+#     mirror_status = engineIns.get_mirror_status()
+#     if mirror_status == 0:
+#         print "{:<17s}: All OK\n".format("Mirror status")
+#     else:
+#         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n"
+def _ShowEngineInfo():
+    dictEngines = _get_HAAPInstance()
+    info_lst = []
+    for i in lstHAAP:
+        info_lst.append(dictEngines[i].infoEngine_lst())
+    def general_info():
+        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version','Status', 'Master', 'Mirror')
+        for strDesc in lstDesc:
+            print(strDesc.center(14)),
+        print
+        for i in info_lst:
+            for s in i:
+                if s is not None:
+                    print(s.center(14)),
+                else:
+                    print("None".center(14)),
+            print 
+    def mirror_info(): #needs optimization    
+        print "\nMirror Error"
+        for i in lstHAAP:
+            print i,":",
+            mirror_status = dictEngines[i].get_mirror_status()
+            if mirror_status != 0 and mirror_status != -1:
+                print mirror_status
+            else:
+                print "None"
+    general_info()
+    mirror_info()
 
 def _isIP(s):
     p = re.compile(
@@ -368,8 +395,18 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
+            _ShowEngineInfo()
+
+    elif sys.argv[1] == 'setTime':
+        if len(sys.argv) != 2:
+            print(strHelpSingleCommand.format('setTime'))
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini')
+        else:
             for i in lstHAAP:
-                _ShowEngineInfo(i)
+                engine = _get_HAAPInstance()[i]
+                engine.set_engine_time()
+#                 print("\n" + engine.get_engine_time())
 
     elif sys.argv[1] == 'test':
 

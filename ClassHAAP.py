@@ -4,6 +4,7 @@ from collections import OrderedDict
 import os
 import time
 import Source as s
+import datetime
 
 
 def deco_OutFromFolder(func):
@@ -63,7 +64,6 @@ class HAAP():
             if self._TN_Conn:
                 return self._TN_Conn.ExecuteCommand('vpd')
 
-    @deco_Exception
     def get_engine_status(self):
         if self._TN_Conn:
             strEnter = self._TN_Conn.ExecuteCommand('')
@@ -87,33 +87,53 @@ class HAAP():
             if result_reAL.group(1) == "None":
                 return 0
             else:
-                return 1
+                return "offline"
 
-    def get_uptime(self, command="human"):
-        strVPD_Info = self.get_vpd()
-        reUpTime = re.compile(
-            r'Uptime\s*:\s*((\d*)d*\s*(\d{2}):(\d{2}):(\d{2}))')
-        result_reUptTime = reUpTime.search(strVPD_Info)
-
-        if result_reUptTime is None:
-            print("get uptime failed...")
+    def get_engine_health(self, strVPD_Info=None):
+        if strVPD_Info is None:
+            strVPD_Info = self.get_vpd()
+        if strVPD_Info is None:
+            print("Get Health Status Failed for Engine {}".format(self._host))
         else:
-            # return uptime in string
-            if command == "human":
-                return result_reUptTime.group(1)
+            reAL = re.compile(r'Alert:\s(\S*)')
+            result_reAL = reAL.search(strVPD_Info)
+            if result_reAL is None:
+                print("Get Health Status Failed for Engine {}".format(self._host))
+            else:
+                if result_reAL.group(1) == "None":
+                    return 0  # 0 means engine is healthy
+                else:
+                    return 1  # 1 means engine has AH
 
-            # return day, hr, min, sec in list
-            elif command == "list":
-                lsUpTime = []
-                # add day to list
-                try:
-                    lsUpTime.append(int(result_reUptTime.group(2)))
-                except ValueError:
-                    lsUpTime.append(0)
-                # add hr, min, sec to list
-                for i in range(3, 6):
-                    lsUpTime.append(int(result_reUptTime.group(i)))
-                return lsUpTime
+    def get_uptime(self, command="human", strVPD_Info=None):
+        if strVPD_Info is None:
+            strVPD_Info = self.get_vpd()
+        if strVPD_Info is None:
+            print("Get Uptime Failed for Engine {}".format(self._host))
+        else:
+            reUpTime = re.compile(
+                r'Uptime\s*:\s*((\d*)d*\s*(\d{2}):(\d{2}):(\d{2}))')
+            result_reUptTime = reUpTime.search(strVPD_Info)
+
+            if result_reUptTime is None:
+                print("Get Uptime Failed for Engine {}".format(self._host))
+            else:
+                # return uptime in string
+                if command == "human":
+                    return result_reUptTime.group(1)
+
+                # return day, hr, min, sec in list
+                elif command == "list":
+                    lsUpTime = []
+                    # add day to list
+                    try:
+                        lsUpTime.append(int(result_reUptTime.group(2)))
+                    except ValueError:
+                        lsUpTime.append(0)
+                    # add hr, min, sec to list
+                    for i in range(3, 6):
+                        lsUpTime.append(int(result_reUptTime.group(i)))
+                    return lsUpTime
 
     @deco_Exception
     def is_master_engine(self):
@@ -123,25 +143,27 @@ class HAAP():
             self._telnet_connect()
             strEngine_info = self._TN_Conn.ExecuteCommand('engine')
 
-        # make sure we can get engine info
-        if re.search(r'>>', strEngine_info) is None:
-            print("get engine info failed...")
+        if strEngine_info is None:
+            print("Get Master Info Failed for Engine {}".format(self._host))
         else:
-            # e.g. ">> 1  (M)" means current engine is master
-            reMaster = re.compile(r'(>>)\s*\d*\s*(\(M\))')
-            result_reMaster = reMaster.search(strEngine_info)
-            if result_reMaster is None:
-                return False
+            if re.search(r'>>', strEngine_info) is None:
+                print("Get Master Info Failed for Engine {}".format(self._host))
             else:
-                return True
+                # e.g. ">> 1  (M)" means current engine is master
+                reMaster = re.compile(r'(>>)\s*\d*\s*(\(M\))')
+                result_reMaster = reMaster.search(strEngine_info)
+                if result_reMaster is None:
+                    return False
+                else:
+                    return True
 
     @deco_Exception
     def get_mirror_info(self):
         if self._TN_Conn:
             return self._TN_Conn.ExecuteCommand('mirror')
         else:
-            if self._make_TN_Conn():
-                return self._TN_Conn.ExecuteCommand('mirror')
+            self._telnet_connect()
+            return self._telnet_Connection.ExecuteCommand('mirror')
 
     @deco_Exception
     def get_mirror_status(self):
@@ -167,21 +189,49 @@ class HAAP():
                 return error_line
             else:
                 return 0
+
         else:
-            if reNoMirror.search(strMirror):
-                print("No mirrors defined")
+            reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  # e.g." 33281(0x8201)"
+            reNoMirror = re.compile(r'No mirrors defined')
+
+            if reMirrorID.search(strMirror):
+                error_line = ""
+                reMirrorStatus = re.compile(r'\d+\s\((\D*)\)')  # e.g."2 (OK )"
+                lines = list(filter(None, strMirror.split("\n")))
+
+                for line in lines:
+                    if reMirrorID.match(line):
+                        mirror_ok = True
+                        mem_stat = reMirrorStatus.findall(line)
+                        for status in mem_stat:
+                            if status.strip() != 'OK':
+                                mirror_ok = False
+                        if not mirror_ok:
+                            error_line += line + "\n"
+                if error_line:
+                    return error_line  # means mirror not okay
+                else:
+                    return 0  # 0 means mirror all okay
             else:
-                print("get mirror status failed...")
+                if reNoMirror.search(strMirror):
+                    return -1  # -1 means no mirror defined
+                else:
+                    print("Get Mirror Status Failed for Engine {}".format(self._host))
 
     @deco_Exception
-    def get_version(self):
-        strVPD_Info = self.get_vpd()
-        reFirmware = re.compile(r'Firmware\sV\d+(.\d+)*')
-        resultFW = reFirmware.search(strVPD_Info)
-        if resultFW:
-            return resultFW.group()
+    def get_version(self, strVPD_Info=None):
+        if strVPD_Info is None:
+            strVPD_Info = self.get_vpd()
+        if strVPD_Info is None:
+            print("Get Firmware Version Failed for Engine {}".format(self._host))
+
         else:
-            print("get firmware version failed...")
+            reFirmware = re.compile(r'Firmware\sV\d+(.\d+)*')
+            resultFW = reFirmware.search(strVPD_Info)
+            if resultFW:
+                return resultFW.group()
+            else:
+                print("Get Firmware Version Failed for Engine {}".format(self._host))
 
     @deco_OutFromFolder
     def backup(self, strBaseFolder):
@@ -308,6 +358,112 @@ class HAAP():
 #                 print(strMsg)
 #                 f.write(strMsg)
 
+    def infoEngine_lst(self):
+        # return: [IP, uptime, AH, FM version, status, master, mirror status]
+        strVPD = self.get_vpd()
+
+        ip = self._host
+        uptime = self.get_uptime(strVPD_Info=strVPD)
+        ah = self.get_engine_health(strVPD_Info=strVPD)
+        if ah == 1:
+            ah = "AH"
+        elif ah == 0:
+            ah = "None"
+
+        version = self.get_version(strVPD_Info=strVPD)
+        if version is not None:
+            version = version[9:]
+
+        status = self.get_engine_status()
+        master = self.is_master_engine()
+        if master is not None:
+            if master:
+                master = "M"
+            else:
+                master = ""
+
+        mr_st = self.get_mirror_status()
+        if mr_st == 0:
+            mr_st = "All OK"
+        elif mr_st == -1:
+            mr_st = "No Mirror"
+        else:
+            if mr_st is not None:
+                mr_st = "NOT ok"
+        return [ip, uptime, ah, version, status, master, mr_st]
+
+    def set_engine_time(self):
+        def check_response(actual_response, cmd_line):
+            if actual_response is None:
+                return False
+            else:
+                return True
+            # More checks needs here
+#                 if actual_response == correct_response.format(cmd_line):
+#                     return True
+#                 else:
+#                     return False
+
+        def set_time():
+            now = datetime.datetime.now()
+            y = now.year
+            m = now.month
+            d = now.day
+            hr = now.hour
+            min = now.minute
+            sec = now.second
+            weekday = now.isoweekday() + 1
+            if weekday > 7:
+                weekday = 1
+
+            command_date = 'rtc set date {} {} {}'.format(m, d, y - 2000)
+            r1 = self._telnet_Connection.ExecuteCommand(command_date)
+            if not check_response(r1, command_date):
+                print('Execute "rtc set date" failed for Engine "{}"'.format(self._host))
+
+            command_time = 'rtc set time {} {} {}'.format(hr, min, sec)
+            r2 = self._telnet_Connection.ExecuteCommand(command_time)
+            if not check_response(r2, command_time):
+                print('Execute "rtc set time" failed for Engine "{}"'.format(self._host))
+
+            command_day = 'rtc set day {}'.format(weekday)
+            r3 = self._telnet_Connection.ExecuteCommand(command_day)
+            if not check_response(r3, command_day):
+                print('Execute "rtc set day" failed for Engine "{}"'.format(self._host))
+            else:
+                print('Successfully Set Time for Engine "{}"'.format(self._host))
+
+        if self._telnet_Connection:
+            set_time()
+        else:
+            self._telnet_connect()
+            set_time()
+
+    def get_engine_time(self):
+        if self._telnet_Connection:
+            return self._telnet_Connection.ExecuteCommand('rtc')
+        else:
+            self._telnet_connect()
+            return self._telnet_Connection.ExecuteCommand('rtc')
+
 
 if __name__ == '__main__':
+    aa = HAAP('10.203.1.111', 23, '', 21)
+#     print(aa.get_vpd())
+#     print(aa.get_uptime('list'))
+#     a = HAAP('10.203.1.111', 23, '', 21)
+    aa.set_engine_time()
+#     print a.get_engine_status()
+#     print a.get_engine_health()
+#     print a.get_uptime(command="human")
+#     print a.is_master_engine()
+#     print a.get_mirror_info()
+#     print a.get_mirror_status()
+#     print a.get_version()
+#     print a.infoEngine_lst()
+
+    # w = ClassConnect.FTPConn('172.16.254.71', 21, 'adminftp', '.com')
+
+    # print(w.getwelcome())
     pass
+

@@ -133,6 +133,11 @@ class FTPConn(object):
                 if _putfile():
                     return True
 
+    def close(self):
+        if self._Connection:
+            self._Connection.quit()
+            self._Connection = None
+
 
 class SSHConn(object):
     def __init__(self, host, port, username, password, timeout):
@@ -243,7 +248,7 @@ class HAAPConn(object):
     def _connect(self):
         try:
             objTelnetConnect = telnetlib.Telnet(
-                self._host, self._port, timeout=3)
+                self._host, self._port, self._timeout)
 
             objTelnetConnect.read_until(
                 self._strLoginPrompt.encode(encoding="utf-8"), timeout=2)
@@ -251,6 +256,7 @@ class HAAPConn(object):
             objTelnetConnect.write(b'\r')
             objTelnetConnect.read_until(
                 self._strMainMenuPrompt.encode(encoding="utf-8"), timeout=2)
+
             self._Connection = objTelnetConnect
             return True
         except Exception as E:
@@ -260,6 +266,12 @@ class HAAPConn(object):
                           self._host),
                       '"{}"'.format(E))
 
+    def _get_connection(self):
+        if self._Connection:
+            return True
+        else:
+            return False
+        
     def ExecuteCommand(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")
@@ -303,10 +315,11 @@ class HAAPConn(object):
         if self._Connection:
             self._Connection.close()
 
+    connection = property(_get_connection, doc="Get HAAPConn instance's connection")
 
 if __name__ == '__main__':
-    # aa = HAAPConn('172.16.254.71', 23, '.com')
-    # print(aa._Connection)
+    aa = HAAPConn('172.16.254.71', 23, '.com')
+    print(aa._Connection)
     # print(aa.ExecuteCommand('conmgr status'))
     # print(1)
     # time.sleep(3)
@@ -341,3 +354,4 @@ if __name__ == '__main__':
     # if dd.GetFile('.', '.', 'wp.txt', 'bbb'):
     #     print('download wp.txt complate, store as bbb...')
     pass
+
