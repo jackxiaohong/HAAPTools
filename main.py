@@ -409,8 +409,8 @@ def main():
 #                 print("\n" + engine.get_engine_time())
 
     elif sys.argv[1] == 'test':
-
-        _SW(sys.argv[2], [])._switchshow()
+        for i in lstHAAP:
+            _HAAP(i).set_time()
 
     else:
         print(strHelp)
