@@ -401,17 +401,20 @@ class HAAP():
                 # Set Time
                 if self._TN_Conn.exctCMD('rtc set time %d %d %d' % (
                         t.h(), t.mi(), t.s())):
-                    print('Set     "Time"    for Engine "%s" Completely...\
+                    print('\tSet  "Time"         for Engine "%s" Completely...\
                         ' % self._host)
-                # Set Date
-                if self._TN_Conn.exctCMD('rtc set date %d %d %d' % (
-                        t.y() - 2000, t.mo(), t.d())):
-                    print('Set     "Date"    for Engine "%s" Completely...\
-                        ' % self._host)
-                # Set Day of the Week
-                if self._TN_Conn.exctCMD('rtc set day %d' % t.wd()):
-                    print('Set "Day_of_Week" for Engine "%s" Completely...\
-                        ' % self._host)
+                    time.sleep(0.25)
+                    # Set Date
+                    if self._TN_Conn.exctCMD('rtc set date %d %d %d' % (
+                            t.y() - 2000, t.mo(), t.d())):
+                        print('\tSet  "Date"         for Engine "%s" Completely...\
+                            ' % self._host)
+                        time.sleep(0.25)
+                        # Set Day of the Week
+                        if self._TN_Conn.exctCMD('rtc set day %d' % t.wd()):
+                            print('\tSet  "Day_of_Week"  for Engine "%s" Completely...\
+                                ' % self._host)
+                            time.sleep(0.25)
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
@@ -420,6 +423,7 @@ class HAAP():
                           '"{}"'.format(E))
 
         if self._TN_Conn:
+            print('\nSetting Time for Engine %s ...' % self._host)
             _exct_cmd()
 
     def get_engine_time(self):
