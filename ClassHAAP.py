@@ -299,7 +299,6 @@ class HAAP():
                 else:
                     print('Generate Trace "{}" File Failed for {}'.format(
                         strTraceDes, self._host))
-                    return None
 
             if _get_trace_name():
                 time.sleep(0.2)

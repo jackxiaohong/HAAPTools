@@ -224,7 +224,7 @@ class SSHConn(object):
             if output:
                 return output
         else:
-            print('Please Check SSH Connection to "{}"'.format(self._host))
+            print('Please Check SSH Connection to "{}" \n\n'.format(self._host))
 
     def close(self):
         if self._client:
@@ -308,7 +308,7 @@ class HAAPConn(object):
             if self._connect():
                 return FindCLI()
             else:
-                print('Please Check Telnet Connection to "{}"'.format(
+                print('Please Check Telnet Connection to "{}" \n\n'.format(
                     self._host))
 
     def Close(self):
