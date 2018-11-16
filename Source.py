@@ -1,6 +1,7 @@
 # coding:utf-8
 import os
 import sys
+import time
 
 
 def ShowErr(_class, _func, _Msg, _Error=''):
@@ -34,6 +35,32 @@ def GotoFolder(strFolder):
         except Exception as E:
             print('Change to Folder {} Fail With Error:\n\t{}'.format(
                 strFolder, E))
+
+
+class TimeNow(object):
+    def _now(self):
+        return time.localtime()
+
+    def y(self):
+        return (self._now()[0])
+
+    def mo(self):   # Month
+        return (self._now()[1])
+
+    def d(self):
+        return (self._now()[2])
+
+    def h(self):
+        return (self._now()[3])
+
+    def mi(self):   # Minute
+        return (self._now()[4])
+
+    def s(self):
+        return (self._now()[5])
+
+    def wd(self):  # Day of the Week
+        return (self._now()[6])
 
 
 def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):

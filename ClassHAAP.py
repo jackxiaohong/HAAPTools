@@ -2,6 +2,7 @@ import ClassConnect
 import re
 from collections import OrderedDict
 import os
+import sys
 import time
 import Source as s
 import datetime
@@ -58,18 +59,18 @@ class HAAP():
     @deco_Exception
     def get_vpd(self):
         if self._TN_Conn:
-            return self._TN_Conn.ExecuteCommand('vpd')
+            return self._TN_Conn.exctCMD('vpd')
         else:
             self._telnet_connect()
             if self._TN_Conn:
-                return self._TN_Conn.ExecuteCommand('vpd')
+                return self._TN_Conn.exctCMD('vpd')
 
     def get_engine_status(self):
         if self._TN_Conn:
-            strEnter = self._TN_Conn.ExecuteCommand('')
+            strEnter = self._TN_Conn.exctCMD('')
         else:
             self._telnet_connect()
-            strEnter = self._TN_Conn.ExecuteCommand('')
+            strEnter = self._TN_Conn.exctCMD('')
         reCLI = re.compile(r'CLI>')
         if reCLI.search(strEnter):
             return "ONLINE"
@@ -77,18 +78,6 @@ class HAAP():
             return "offline"
 
     @deco_Exception
-    def get_engine_health(self):
-        strVPD_Info = self.get_vpd()
-        reAL = re.compile(r'Alert:\s(\S*)')
-        result_reAL = reAL.search(strVPD_Info)
-        if result_reAL is None:
-            print('get engine health status failed...')
-        else:
-            if result_reAL.group(1) == "None":
-                return 0
-            else:
-                return "offline"
-
     def get_engine_health(self, strVPD_Info=None):
         if strVPD_Info is None:
             strVPD_Info = self.get_vpd()
@@ -138,10 +127,10 @@ class HAAP():
     @deco_Exception
     def is_master_engine(self):
         if self._TN_Conn:
-            strEngine_info = self._TN_Conn.ExecuteCommand('engine')
+            strEngine_info = self._TN_Conn.exctCMD('engine')
         else:
             self._telnet_connect()
-            strEngine_info = self._TN_Conn.ExecuteCommand('engine')
+            strEngine_info = self._TN_Conn.exctCMD('engine')
 
         if strEngine_info is None:
             print("Get Master Info Failed for Engine {}".format(self._host))
@@ -160,10 +149,10 @@ class HAAP():
     @deco_Exception
     def get_mirror_info(self):
         if self._TN_Conn:
-            return self._TN_Conn.ExecuteCommand('mirror')
+            return self._TN_Conn.exctCMD('mirror')
         else:
             self._telnet_connect()
-            return self._telnet_Connection.ExecuteCommand('mirror')
+            return self._TN_Conn.exctCMD('mirror')
 
     @deco_Exception
     def get_mirror_status(self):
@@ -253,7 +242,7 @@ class HAAP():
         FTPConn = self._FTP_Conn
         time.sleep(0.25)
         FTPConn.PutFile('/mbflash', './', 'fwimage', strFWFile)
-        print('FW Upgrade Done for {}, Wait for reboot...'.format(
+        print('FW Upgrade Done for {}, Waiting for reboot...'.format(
             self._host))
 
     @deco_Exception
@@ -262,7 +251,7 @@ class HAAP():
         with open(strCMDFile, 'r') as f:
             lstCMD = f.readlines()
             for strCMD in lstCMD:
-                strResult = tn.ExecuteCommand(strCMD)
+                strResult = tn.exctCMD(strCMD)
                 if strResult:
                     print(strResult)
                 else:
@@ -291,7 +280,7 @@ class HAAP():
         def _get_trace_file(command, strTraceDes):
             # TraceDes = Trace Description
             def _get_trace_name():
-                result = tn.ExecuteCommand(command)
+                result = tn.exctCMD(command)
                 reTraceName = re.compile(r'(ftp_data_\d{8}_\d{6}.txt)')
                 strTraceName = reTraceName.search(result)
                 if strTraceName:
@@ -336,10 +325,10 @@ class HAAP():
         tn = self._TN_Conn
         s.GotoFolder(strResultFolder)
         with open(strResultFile, 'w') as f:
-            if tn.ExecuteCommand('\n'):
+            if tn.exctCMD('\n'):
                 for strCMD in lstCommand:
                     time.sleep(0.5)
-                    strResult = tn.ExecuteCommand(strCMD)
+                    strResult = tn.exctCMD(strCMD)
                     if strResult:
                         print(strResult)
                         f.write(strResult)
@@ -359,7 +348,7 @@ class HAAP():
 #                 f.write(strMsg)
 
     def infoEngine_lst(self):
-        # return: [IP, uptime, AH, FM version, status, master, mirror status]
+        # return: [IP, uptime, AH, FW version, status, master, mirror status]
         strVPD = self.get_vpd()
 
         ip = self._host
@@ -404,47 +393,41 @@ class HAAP():
 #                 else:
 #                     return False
 
-        def set_time():
-            now = datetime.datetime.now()
-            y = now.year
-            m = now.month
-            d = now.day
-            hr = now.hour
-            min = now.minute
-            sec = now.second
-            weekday = now.isoweekday() + 1
-            if weekday > 7:
-                weekday = 1
+    def set_time(self):
+        t = s.TimeNow()
 
-            command_date = 'rtc set date {} {} {}'.format(m, d, y - 2000)
-            r1 = self._telnet_Connection.ExecuteCommand(command_date)
-            if not check_response(r1, command_date):
-                print('Execute "rtc set date" failed for Engine "{}"'.format(self._host))
+        def _exct_cmd():
+            try:
+                # Set Time
+                if self._TN_Conn.exctCMD('rtc set time %d %d %d' % (
+                        t.h(), t.mi(), t.s())):
+                    print('Set     "Time"    for Engine "%s" Completely...\
+                        ' % self._host)
+                # Set Date
+                if self._TN_Conn.exctCMD('rtc set date %d %d %d' % (
+                        t.y() - 2000, t.mo(), t.d())):
+                    print('Set     "Date"    for Engine "%s" Completely...\
+                        ' % self._host)
+                # Set Day of the Week
+                if self._TN_Conn.exctCMD('rtc set day %d' % t.wd()):
+                    print('Set "Day_of_Week" for Engine "%s" Completely...\
+                        ' % self._host)
+            except Exception as E:
+                s.ShowErr(self.__class__.__name__,
+                          sys._getframe().f_code.co_name,
+                          'rtc Set Faild for Engine "{}" with Error:'.format(
+                              self._host),
+                          '"{}"'.format(E))
 
-            command_time = 'rtc set time {} {} {}'.format(hr, min, sec)
-            r2 = self._telnet_Connection.ExecuteCommand(command_time)
-            if not check_response(r2, command_time):
-                print('Execute "rtc set time" failed for Engine "{}"'.format(self._host))
-
-            command_day = 'rtc set day {}'.format(weekday)
-            r3 = self._telnet_Connection.ExecuteCommand(command_day)
-            if not check_response(r3, command_day):
-                print('Execute "rtc set day" failed for Engine "{}"'.format(self._host))
-            else:
-                print('Successfully Set Time for Engine "{}"'.format(self._host))
-
-        if self._telnet_Connection:
-            set_time()
-        else:
-            self._telnet_connect()
-            set_time()
+        if self._TN_Conn:
+            _exct_cmd()
 
     def get_engine_time(self):
-        if self._telnet_Connection:
-            return self._telnet_Connection.ExecuteCommand('rtc')
+        if self._TN_Conn:
+            return self._TN_Conn.exctCMD('rtc')
         else:
             self._telnet_connect()
-            return self._telnet_Connection.ExecuteCommand('rtc')
+            return self._TN_Conn.exctCMD('rtc')
 
 
 if __name__ == '__main__':
@@ -466,4 +449,3 @@ if __name__ == '__main__':
 
     # print(w.getwelcome())
     pass
-
