@@ -2,6 +2,8 @@
 import os
 import sys
 import time
+from mongoengine import *
+from apscheduler.schedulers.blocking import BlockingScheduler
 
 
 def ShowErr(_class, _func, _Msg, _Error=''):
@@ -37,6 +39,18 @@ def GotoFolder(strFolder):
                 strFolder, E))
 
 
+class Timing(object):
+    def __init__(self):
+        self.scdl = BlockingScheduler()
+
+    def add_interval(self, job, intSec):
+        self.scdl.add_job(job, 'interval', seconds=intSec)
+        self.scdl.start()
+
+    def stp(self):
+        self.scdl.shutdown()
+
+
 class TimeNow(object):
     def __init__(self):
         self._now = time.localtime()
@@ -61,6 +75,28 @@ class TimeNow(object):
 
     def wd(self):  # Day of the Week
         return (self._now[6])
+
+
+
+# class store_in_MongoDB():
+#     def __init__(self, ):
+#         self.DBServer = strDBServer
+#         self.DBPort = intDBPort
+#         self.DBName = strDBName
+#         connect()
+#         self._DB = None
+#         self._connect()
+
+#     def _connect(self):
+#         dbConn = MongoClient(self.DBServer, self.DBPort)
+#         # db = dbConn.'%s' % self.strDBName
+#         dbName = self.DBName
+#         self._DB = dbConn.dbName
+
+#     def coll_insert(self, coll_name, value):
+#         if self._DB:
+#             locals()[coll_name] = self._DB.coll_name
+#             locals()[coll_name].insert(value)
 
 
 def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):
@@ -117,3 +153,18 @@ def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):
         _trace_analize(lstTraceFile)
     finally:
         os.chdir(strOriginalFolder)
+
+
+if __name__ == '__main__':
+    # a = store_in_MongoDB('HDB')
+    # cn = {'2':'3'}
+    # a.coll_insert('aa', cn)
+
+    def p():
+        print('123')
+
+    a = Timing()
+    a.add_interval(p, 2)
+
+    time.sleep(7)
+    a.stp()

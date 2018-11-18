@@ -4,11 +4,13 @@ import ClassSW as sw
 import ClassHAAP as haap
 import Source as s
 from collections import OrderedDict as Odd
+from apscheduler.schedulers.blocking import BlockingScheduler
 import os
 import sys
 import datetime
 import getpass
 import re
+from mongoengine import *
 
 from flask import Flask, render_template, redirect, request
 
@@ -64,6 +66,11 @@ strHelpSingleCommand = '''
 objCFG = cp.ConfigParser(allow_no_value=True)
 objCFG.read('Conf.ini')
 
+# <<<DB Config>>>
+strDBServer = objCFG.get('DBSetting', 'host')
+intDBPort = int(objCFG.get('DBSetting', 'port'))
+strDBName = objCFG.get('DBSetting', 'name')
+# <<<DB Config>>>
 
 # <<<SAN Switch Config>>>
 strSWUser = objCFG.get('SWSetting', 'username')
@@ -288,21 +295,74 @@ def _isFile(s):
         return False
 
 
+def get_HAAP_status_list():
+    lstHAAPstatus = []
+    for i in lstHAAP:
+        t = {}
+        t[i] = _HAAP(i).infoEngine_lst()
+        lstHAAPstatus.append(t)
+    return lstHAAPstatus
+
+
+class collHAAP(Document):
+    time = DateTimeField(default=datetime.datetime.now())
+    engine_status = ListField()
+
+
+class DB_collHAAP(object):
+    connect(strDBName, host=strDBServer, port=intDBPort)
+
+    def haap_insert(self, lstSTS):
+        t = collHAAP(engine_status=lstSTS)
+        t.save()
+
+    def haap_query(self, time_start, time_end):
+        collHAAP.objects(date__gte=time_start,
+                         date__lt=time_end).order_by('-date')
+
+    def haap_list_all(self):
+        for i in collHAAP.objects():
+            print(i.time, i.engine_status)
+
+    def get_last_record(self):
+        last_record = collHAAP.objects().order_by('-time').first()
+        print(last_record.time, last_record.engine_status)
+        return(last_record.time, last_record.engine_status)
+
+
+def timing_clct_to_db(intSec):
+    t = s.Timing()
+    db = DB_collHAAP()
+    t.add_interval(db.haap_insert(get_HAAP_status_list()), inSec)
+    print('update complately...')
+
+
 def start_web():
     app = Flask(__name__, template_folder='./web/templates',
                 static_folder='./web/static', static_url_path='')
     # basedir = os.path.abspath(os.path.dirname(__file__))
     # basedir = 'web'
-
+    timing_clct_to_db(15)
+    
     @app.route("/")
     def home():
         lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
                    'Status', 'Master', 'Mirror')
+        # lstStatus = []
+        # for i in lstHAAP:
+        #     lstStatus.append(_HAAP(i).infoEngine_lst())
+
+        # lstHAAPstatus = get_HAAP_status_list()
+        db = DB_collHAAP()
+        last_update = db.get_last_record()
         lstStatus = []
         for i in lstHAAP:
-            lstStatus.append(_HAAP(i).infoEngine_lst())
+            lstStatus.append(last_update.engine_status[i])
+        # db.haap_insert(lstHAAPstatus)
+        
+        # print(lstStatus)
 
-        print(lstStatus)
+
 
         return render_template("monitor.html",
                                Title=lstDesc,
@@ -454,4 +514,18 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # a = DB_collHAAP()
+    # a.insert([1,2,3])
+    # print(a.list_all())
+    # lstSTS = [1, 2, 3]
+    # b = collHAAP(engine_status=lstSTS)
+    # b.save
+
+    # t = collHAAP(engine_status = [79,38])
+    # t.save()
+    m = DB_collHAAP()
+    m.get_last_record()
+    # m.haap_insert(['2dse4', '3saff'])
+    # m.haap_list_all()
+    # print(collHAAP.objects().all())
+    # haap_insert([2323, 2323])
