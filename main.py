@@ -10,6 +10,8 @@ import datetime
 import getpass
 import re
 
+from flask import Flask, render_template, redirect, request
+
 try:
     import configparser as cp
 except Exception:
@@ -122,10 +124,10 @@ strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 
 
 def _get_TimeNow():
-    # return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    t = s.TimeNow()
-    return '%s-%s-%s-%s-%s-%s' % (t.y(), t.mo(), t.d(),
-                                  t.h(), t.mi(), t.s())
+    return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    # t = s.TimeNow()
+    # return '%s-%s-%s-%s-%s-%s' % (t.y(), t.mo(), t.d(),
+    #                               t.h(), t.mi(), t.s())
 
 
 # en-Instance The HAAP by IP...
@@ -240,7 +242,7 @@ def _ShowEngineInfo():
             print
 
     def mirror_info():  # needs optimization
-        print "\nMirror Error"
+        print("\nMirror Error")
         for i in lstHAAP:
             print i, ":",
             mirror_status = dictEngines[i].get_mirror_status()
@@ -284,6 +286,29 @@ def _isFile(s):
         return True
     else:
         return False
+
+
+def start_web():
+    app = Flask(__name__, template_folder='./web/templates',
+                static_folder='./web/static', static_url_path='')
+    # basedir = os.path.abspath(os.path.dirname(__file__))
+    # basedir = 'web'
+
+    @app.route("/")
+    def home():
+        lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
+                   'Status', 'Master', 'Mirror')
+        lstStatus = []
+        # for i in lstHAAP:
+        #     lstStatus.append(_HAAP(i).infoEngine_lst())
+
+        return render_template("monitor.html",
+                               Title=lstDesc,
+                               Status=lstStatus,
+                               refresh_time=_get_TimeNow())
+
+    app.run(debug=True, host='0.0.0.0', port=5000)
+
 
 # ################################################
 # <<<Inside Function Field>>>
@@ -420,8 +445,7 @@ def main():
 #                 print("\n" + engine.get_engine_time())
 
     elif sys.argv[1] == 'test':
-        for i in lstHAAP:
-            _HAAP(i).set_time()
+        start_web()
 
     else:
         print(strHelp)
