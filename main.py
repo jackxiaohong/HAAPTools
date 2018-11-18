@@ -299,8 +299,10 @@ def start_web():
         lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
                    'Status', 'Master', 'Mirror')
         lstStatus = []
-        # for i in lstHAAP:
-        #     lstStatus.append(_HAAP(i).infoEngine_lst())
+        for i in lstHAAP:
+            lstStatus.append(_HAAP(i).infoEngine_lst())
+
+        print(lstStatus)
 
         return render_template("monitor.html",
                                Title=lstDesc,

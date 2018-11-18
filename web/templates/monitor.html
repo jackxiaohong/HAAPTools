@@ -112,7 +112,7 @@
 					{% for i in Status %}
 					{% if s %}
 						<tr class="success">
-							{% for s in Status[i] %}
+							{% for s in i %}
 				             <td>
 								 {{s}}
 							 </td>
@@ -120,7 +120,7 @@
 				         </tr>
 				      {% else %}
 				           <tr class="success">
-							{% for s in Status[i] %}
+							{% for s in i %}
 				             <td>
 								 {{s}}
 							 </td>
