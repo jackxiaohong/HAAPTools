@@ -45,7 +45,7 @@ class FTPConn(object):
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Connect to "{}" Fail with Error:'.format(
+                          'FTP Connect to "{}" Failed with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
 
@@ -58,7 +58,7 @@ class FTPConn(object):
                 # print(E)
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Login to "{}" Fail with Error:'.format(
+                          'FTP Login to "{}" Failed with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
 
@@ -88,7 +88,7 @@ class FTPConn(object):
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Download "{}" Fail with Error:'.format(
+                          'FTP Download "{}" Failed with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
 
@@ -121,7 +121,7 @@ class FTPConn(object):
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Upload "{}" Fail with Error:'.format(
+                          'FTP Upload "{}" Failed with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
 
@@ -163,7 +163,7 @@ class SSHConn(object):
         except Exception as E:
             s.ShowErr(self.__class__.__name__,
                       sys._getframe().f_code.co_name,
-                      'SSH Connect to "{}" Fail with Error:'.format(
+                      'SSH Connect to "{}" Failed with Error:'.format(
                           self._host),
                       '"%s"' % E)
 
@@ -215,7 +215,7 @@ class SSHConn(object):
             # else:
             #     s.ShowErr(self.__class__.__name__,
             #               sys._getframe().f_code.co_name,
-            #               'Execute Command "{}" Fail with Error:'.format(
+            #               'Execute Command "{}" Failed with Error:'.format(
             #                   self._host),
             #               E)
 
@@ -262,7 +262,7 @@ class HAAPConn(object):
         except Exception as E:
             s.ShowErr(self.__class__.__name__,
                       sys._getframe().f_code.co_name,
-                      'Telnet Connect to "{}" Fail with Error:'.format(
+                      'Telnet Connect to "{}" Failed with Error:'.format(
                           self._host),
                       '"{}"'.format(E))
 

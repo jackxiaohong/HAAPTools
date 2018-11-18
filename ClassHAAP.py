@@ -234,6 +234,8 @@ class HAAP():
                     strCFGFile.ljust(12), self._host))
                 continue
             else:
+                print('{} Backup Failed for {}'.format(
+                    strCFGFile.ljust(12), self._host))
                 break
             time.sleep(0.25)
 
@@ -286,20 +288,24 @@ class HAAP():
                 if strTraceName:
                     return strTraceName.group()
                 else:
-                    print('Generate Trace "{}" File Failed for {}'.format(
+                    print('Generate Trace "{}" File Failed for "{}"'.format(
                         strTraceDes, self._host))
-                    return None
 
-            if _get_trace_name():
-                time.sleep(0.2)
-                strName = 'Trace_{}_{}.log'.format(self._host, strTraceDes)
-                connFTP.GetFile('mbtrace', '.', _get_trace_name(), strName)
-                print('Get Trace {:<10} for {} Completely ...'.format(
-                    strTraceDes, self._host))
-                return True
-            else:
-                s.ShowErrors('Can Not Get Trace Name...',
-                             self.__class__.__name__)
+            trace_name = _get_trace_name()
+            if trace_name:
+                time.sleep(0.1)
+                local_name = 'Trace_{}_{}.log'.format(self._host, strTraceDes)
+                if connFTP.GetFile('mbtrace', '.', trace_name, local_name):
+                    print('Get Trace "{:<10}" for "{}" Completely ...'.format(
+                        strTraceDes, self._host))
+                    return True
+                else:
+                    print('Get Trace "{:<10}" for Engine "{}" Failed...\
+                        '.format(strTraceDes, self._host))
+                #     s.ShowErr(self.__class__.__name__,
+                #               sys._getframe().f_code.co_name,
+                #               'Get Trace "{:<10}" for Engine "{}" Failed...\
+                #               '.format(strTraceDes, self._host))
 
         oddCommand = _get_oddCommand(intTraceLevel)
         lstCommand = list(oddCommand.values())
@@ -308,12 +314,14 @@ class HAAP():
         s.GotoFolder(strBaseFolder)
         for i in range(len(lstDescribe)):
             try:
-                _get_trace_file(lstCommand[i], lstDescribe[i])
-                continue
+                if _get_trace_file(lstCommand[i], lstDescribe[i]):
+                    continue
+                else:
+                    break
             except Exception as E:
                 # s.ShowErr(self.__class__.__name__,
                 #           sys._getframe().f_code.co_name,
-                #           'Get Trace "{}" Fail for Engine "{}",\
+                #           'Get Trace "{}" Failed for Engine "{}",\
                 # Error:'.format(
                 #               lstDescribe[i], self._host),
                 #           E)
@@ -324,10 +332,10 @@ class HAAP():
     def periodic_check(self, lstCommand, strResultFolder, strResultFile):
         tn = self._TN_Conn
         s.GotoFolder(strResultFolder)
-        with open(strResultFile, 'w') as f:
-            if tn.exctCMD('\n'):
+        if tn.exctCMD('\n'):
+            with open(strResultFile, 'w') as f:
                 for strCMD in lstCommand:
-                    time.sleep(0.5)
+                    time.sleep(0.25)
                     strResult = tn.exctCMD(strCMD)
                     if strResult:
                         print(strResult)
@@ -337,8 +345,8 @@ class HAAP():
                             strCMD)
                         # print(strErr)
                         f.write(strErr)
-#             else:
-#                 strMsg = '''
+#         else:
+#             strMsg = '''
 # ********************************************************************
 # Error Message:
 #     Connet Failed
@@ -381,40 +389,27 @@ class HAAP():
                 mr_st = "NOT ok"
         return [ip, uptime, ah, version, status, master, mr_st]
 
-    def set_engine_time(self):
-        def check_response(actual_response, cmd_line):
-            if actual_response is None:
-                return False
-            else:
-                return True
-            # More checks needs here
-#                 if actual_response == correct_response.format(cmd_line):
-#                     return True
-#                 else:
-#                     return False
-
     def set_time(self):
-        t = s.TimeNow()
-
         def _exct_cmd():
+            t = s.TimeNow()
+            
+            def complete_print(strDesc):
+                print('\tSet  %-13s for Engine "%s" Completely...\
+                        ' % ('"%s"' % strDesc, self._host))
+                time.sleep(0.25)
+
             try:
                 # Set Time
                 if self._TN_Conn.exctCMD('rtc set time %d %d %d' % (
                         t.h(), t.mi(), t.s())):
-                    print('\tSet  "Time"         for Engine "%s" Completely...\
-                        ' % self._host)
-                    time.sleep(0.25)
+                    complete_print('Time')
                     # Set Date
                     if self._TN_Conn.exctCMD('rtc set date %d %d %d' % (
                             t.y() - 2000, t.mo(), t.d())):
-                        print('\tSet  "Date"         for Engine "%s" Completely...\
-                            ' % self._host)
-                        time.sleep(0.25)
+                        complete_print('Date')
                         # Set Day of the Week
                         if self._TN_Conn.exctCMD('rtc set day %d' % t.wd()):
-                            print('\tSet  "Day_of_Week"  for Engine "%s" Completely...\
-                                ' % self._host)
-                            time.sleep(0.25)
+                            complete_print('Day_of_Week')
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
@@ -425,6 +420,8 @@ class HAAP():
         if self._TN_Conn:
             print('\nSetting Time for Engine %s ...' % self._host)
             _exct_cmd()
+        else:
+            print('\nSetting Time for Engine %s Failed...' % self._host)
 
     def get_engine_time(self):
         if self._TN_Conn:

@@ -64,12 +64,12 @@ class SANSW(object):
                            resultDataAndErr.group(6).split())
 
         def _putToDict():
-            dicPort_Error = OrderedDict()
+            oddPortError = OrderedDict()
             lstPortErrLines = str(self._strAllPortError).split('\n')
             for intPortNum in self._allSWPort:
                 lstErrInfo = _getErrorAsList(intPortNum, lstPortErrLines)
-                dicPort_Error[intPortNum] = lstErrInfo
-            self._dicPartPortError = dicPort_Error
+                oddPortError[intPortNum] = lstErrInfo
+            self._dicPartPortError = oddPortError
 
         if self._strAllPortError:
             _putToDict()

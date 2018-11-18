@@ -6,13 +6,13 @@ import time
 
 def ShowErr(_class, _func, _Msg, _Error=''):
     print(str('''
--------------------------------------------------------------------
-|*Error Message:
-|    Class Name :   {:<46}
-|    Function name: {:<46}
-|    Error Message: {:<46}
-|        {:<57}
--------------------------------------------------------------------\
+----------------------------------------------------------------------------
+|*Error Message:                                                           |
+|    Class Name :   {:<55}|
+|    Function name: {:<55}|
+|    Error Message: {:<55}|
+|        {:<66}|
+----------------------------------------------------------------------------\
 '''.format(_class, _func, _Msg, _Error)))
 
 
@@ -25,7 +25,7 @@ def GotoFolder(strFolder):
                 os.makedirs(strFolder)
                 return True
             except Exception as E:
-                print('Create Folder {} Fail With Error:\n\t{}'.format(
+                print('Create Folder "{}" Fail With Error:\n\t"{}"'.format(
                     strFolder, E))
 
     if _mkdir():
@@ -33,34 +33,34 @@ def GotoFolder(strFolder):
             os.chdir(strFolder)
             return True
         except Exception as E:
-            print('Change to Folder {} Fail With Error:\n\t{}'.format(
+            print('Change to Folder "{}" Fail With Error:\n\t"{}"'.format(
                 strFolder, E))
 
 
 class TimeNow(object):
-    def _now(self):
-        return time.localtime()
+    def __init__(self):
+        self._now = time.localtime()
 
-    def y(self):
-        return (self._now()[0])
+    def y(self):    # Year
+        return (self._now[0])
 
     def mo(self):   # Month
-        return (self._now()[1])
+        return (self._now[1])
 
-    def d(self):
-        return (self._now()[2])
+    def d(self):    # Day
+        return (self._now[2])
 
-    def h(self):
-        return (self._now()[3])
+    def h(self):    # Hour
+        return (self._now[3])
 
     def mi(self):   # Minute
-        return (self._now()[4])
+        return (self._now[4])
 
-    def s(self):
-        return (self._now()[5])
+    def s(self):    # Second
+        return (self._now[5])
 
     def wd(self):  # Day of the Week
-        return (self._now()[6])
+        return (self._now[6])
 
 
 def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):
@@ -73,22 +73,22 @@ def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):
                 strTrace = f.read()
             return strTrace.strip().replace('\ufeff', '')
         except Exception as E:
-            print('Open File {} Failed...'.format(strFileName))
-            return None
+            print('Open File "{}" Failed With Error:\n\t"{}"'.format(
+                strFileName, E))
 
     def _trace_analize(lstTraceFiles):
         intErrFlag = 0
         strRunResult = ''
         for strFileName in lstTraceFiles:
             if (lambda i: i.startswith('Trace_'))(strFileName):
-                print('\n{}  Analysing ...'.format(strFileName))
-                strRunResult += '\n{}  Analysing ...\n'.format(strFileName)
+                print('\n"{}"  Analysing ...'.format(strFileName))
+                strRunResult += '\n"{}"  Analysing ...\n'.format(strFileName)
                 openExcel = xlwt.Workbook()
                 for strErrType in oddHAAPErrorDict.keys():
                     reErr = re.compile(oddHAAPErrorDict[strErrType])
                     tupErr = reErr.findall(_read_file(strFileName))
                     if len(tupErr) > 0:
-                        strOut = " *** {} Times of {} Found...".format(
+                        strOut = ' *** "{}" Times of "{}" Found...'.format(
                             (len(tupErr) + 1), strErrType)
                         print(strOut)
                         strRunResult += strOut
@@ -99,20 +99,17 @@ def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):
                                     x, y, tupErr[x][y].strip().replace(
                                         "\n", '', 1))
                         intErrFlag += 1
-                    else:
-                        pass
                     reErr = None
-                else:
-                    pass
                 if intErrFlag > 0:
                     openExcel.save('TraceAnalyse_' +
                                    strFileName + '.xls')
                 else:
-                    strOut = '--- No Error in {}'.format(strFileName)
+                    strOut = '--- No Error Find in "{}"'.format(strFileName)
                     print(strOut)
                     strRunResult += strOut
                 intErrFlag = 0
         return strRunResult
+
     strOriginalFolder = os.getcwd()
     try:
         GotoFolder(strTraceFolder)

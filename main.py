@@ -122,7 +122,10 @@ strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 
 
 def _get_TimeNow():
-    return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    # return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    t = s.TimeNow()
+    return '%s-%s-%s-%s-%s-%s' % (t.y(), t.mo(), t.d(),
+                                  t.h(), t.mi(), t.s())
 
 
 # en-Instance The HAAP by IP...
@@ -185,40 +188,46 @@ def _FWUpdate(strEngineIP, strFWFile):
 
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
-    if alert is not None: 
-        if alert: al_st = "AH"
-        else: al_st = "OK"
+    if alert is not None:
+        if alert:
+            al_st = "AH"
+        else:
+            al_st = "OK"
         print("{}: {}".format(strEngineIP, al_st))
-        
+
 # def _ShowEngineInfo(strEngineIP):
 #     engineIns = _HAAP(strEngineIP)
 #     print "{:<17s}:".format("Engine IP"), strEngineIP
 #     print "{:<17s}:".format("Status"), engineIns.get_engine_status()
 #     print "{:<17s}:".format("Firmware version"), engineIns.get_version()
 #     print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
-#      
+#
 #     if engineIns.get_engine_health():
 #         print "{:<17s}: AH".format("Alert Halt")
 #     else:
 #         print "{:<17s}: None".format("Alert Halt")
-#      
+#
 #     if engineIns.is_master_engine():
 #         print "{:<17s}: Yes".format("Master")
 #     else:
 #         print "{:<17s}: No".format("Master")
-#      
+#
 #     mirror_status = engineIns.get_mirror_status()
 #     if mirror_status == 0:
 #         print "{:<17s}: All OK\n".format("Mirror status")
 #     else:
 #         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n"
+
+
 def _ShowEngineInfo():
     dictEngines = _get_HAAPInstance()
     info_lst = []
     for i in lstHAAP:
         info_lst.append(dictEngines[i].infoEngine_lst())
+
     def general_info():
-        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version','Status', 'Master', 'Mirror')
+        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
+                   'Status', 'Master', 'Mirror')
         for strDesc in lstDesc:
             print(strDesc.center(14)),
         print
@@ -228,11 +237,12 @@ def _ShowEngineInfo():
                     print(s.center(14)),
                 else:
                     print("None".center(14)),
-            print 
-    def mirror_info(): #needs optimization    
+            print
+
+    def mirror_info():  # needs optimization
         print "\nMirror Error"
         for i in lstHAAP:
-            print i,":",
+            print i, ":",
             mirror_status = dictEngines[i].get_mirror_status()
             if mirror_status != 0 and mirror_status != -1:
                 print mirror_status
@@ -240,6 +250,7 @@ def _ShowEngineInfo():
                 print "None"
     general_info()
     mirror_info()
+
 
 def _isIP(s):
     p = re.compile(
