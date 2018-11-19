@@ -8,9 +8,12 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 import os
 import sys
 import datetime
+import time
 import getpass
 import re
 from mongoengine import *
+from threading import Thread
+import thread
 
 from flask import Flask, render_template, redirect, request
 
@@ -318,8 +321,8 @@ class collHAAP(Document):
 class DB_collHAAP(object):
     connect(strDBName, host=strDBServer, port=intDBPort)
 
-    def haap_insert(self, lstSTS):
-        t = collHAAP(engine_status=lstSTS)
+    def haap_insert(self, time_now, lstSTS):
+        t = collHAAP(time=time_now, engine_status=lstSTS)
         t.save()
 
     def haap_query(self, time_start, time_end):
@@ -332,7 +335,6 @@ class DB_collHAAP(object):
 
     def get_last_record(self):
         last_record = collHAAP.objects().order_by('-time').first()
-        print(last_record.time, last_record.engine_status)
         return(last_record.time, last_record.engine_status)
 
 def start_web():
@@ -352,24 +354,43 @@ def start_web():
         #     lstStatus.append(_HAAP(i).infoEngine_lst())
 
         # lstHAAPstatus = get_HAAP_status_list()
-
+        refresh_time = ['']
         db = DB_collHAAP()
-        last_update = db.get_last_record()
-        print('Last record @ %s' % last_update[0])
-        refresh_time = last_update[0]
-        lstStatusDict = last_update[1]
-        lstStatus = []
-        for i in range(len(lstHAAPAlias)):
-            print(lstStatusDict[i][lstHAAPAlias[i]])
-            lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
-        print(lstStatus)
+        def get_last_status():
+            last_update = db.get_last_record()
+            print('Last record @ %s' % last_update[0])
+            refresh_time[0] = last_update[0]
+            lstStatusDict = last_update[1]
+            lstStatus = []
+            for i in range(len(lstHAAPAlias)):
+                #print(lstStatusDict[i][lstHAAPAlias[i]])
+                lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
+            return lstStatus
         
         return render_template("monitor.html",
                                Title=lstDesc,
-                               Status=lstStatus,
-                               refresh_time=refresh_time)
+                               Status=get_last_status(),
+                               refresh_time=refresh_time[0])
     app.run(debug=False, use_reloader = False, host='0.0.0.0', port=5000)
 
+def job_update_interval(intInterval):
+    t = s.Timing()
+    db = DB_collHAAP()
+    def do_it():
+        n = datetime.datetime.now()
+        do_update = db.haap_insert(n, get_HAAP_status_list())
+        print('update complately...@ %s' % n)
+        return do_update
+    # while True:
+    #     do_it()
+    #     time.sleep(intInterval)
+
+    t.add_interval(do_it, intInterval)
+    t.stt()
+
+def thrd_web():
+    Thread(target= start_web).start()
+    Thread(target= job_update_interval,args=(10,)).start()
 
 def schd_web():
     t = s.Timing()
@@ -555,22 +576,28 @@ if __name__ == '__main__':
     #print(type(get_HAAP_status_list()))
     
 
-    # db = DB_collHAAP()
-    # db.haap_insert(get_HAAP_status_list())
+    #db = DB_collHAAP()
+    
+    #db.haap_insert(get_HAAP_status_list())
     # last_update = db.get_last_record()
     # print(last_update[1])
 
-    # db = DB_collHAAP()
-    # last_update = db.get_last_record()
-    # print(last_update)
-    # refresh_time = last_update[0]
+    #job_update_interval(3)
+    db = DB_collHAAP()
+
+    last_update = db.get_last_record()
+    #print(last_update)
+    print(last_update[0])
     # lstStatusDict = last_update[1]
     # lstStatus = []
     # for i in range(len(lstHAAPAlias)):
     #     print(lstStatusDict[i][lstHAAPAlias[i]])
     #     lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
     # print(lstStatus)
-    schd_web()
+    #schd_web()
+    #thrd_web()
+    #job_update_interval(3)
+    thrd_web()
     #main()
     #schd_web()
     pass
