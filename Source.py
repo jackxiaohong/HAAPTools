@@ -44,11 +44,28 @@ class Timing(object):
         self.scdl = BlockingScheduler()
 
     def add_interval(self, job, intSec):
-        self.scdl.add_job(job, 'interval', seconds=intSec)
+        self.scdl.add_job(job, 'interval', seconds=intSec, max_instances=6)
+
+    def add_once(self, job, rdate):
+        try:
+            self.scdl.add_job(job, 'date', run_date=rdate, max_instances=6)
+        except ValueError as E:
+            self.scdl.add_job(job, 'date')
+        
+    def stt(self):
         self.scdl.start()
 
     def stp(self):
         self.scdl.shutdown()
+
+def ttt():
+    t = Timing()
+    
+    def job_update_interval():
+        print('update complately...')
+    
+    t.add_interval(job_update_interval, 2)
+    t.stt()
 
 
 class TimeNow(object):
@@ -160,11 +177,7 @@ if __name__ == '__main__':
     # cn = {'2':'3'}
     # a.coll_insert('aa', cn)
 
-    def p():
-        print('123')
+    #ttt()
+    print('www')
 
-    a = Timing()
-    a.add_interval(p, 2)
 
-    time.sleep(7)
-    a.stp()
