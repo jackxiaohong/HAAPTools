@@ -1,5 +1,5 @@
 # coding:utf-8
-
+from __future__ import print_function
 import ClassSW as sw
 import ClassHAAP as haap
 import Source as s
@@ -259,12 +259,12 @@ def _ShowEngineInfo():
     def mirror_info():  # needs optimization
         print("\nMirror Error")
         for i in lstHAAP:
-            print i, ":",
+            print(i, ":")
             mirror_status = dictEngines[i].get_mirror_status()
             if mirror_status != 0 and mirror_status != -1:
-                print mirror_status
+                print(mirror_status)
             else:
-                print "None"
+                print("None")
     general_info()
     mirror_info()
 
@@ -344,19 +344,20 @@ class DB_collHAAP(object):
                     lstRecord[x].append(N_record[x].engine_status[i][k])
         return lstRecord
 
-    def show_N_record(self,intN)
+    def show_N_record(self,intN):
         r = self.get_N_record(intN)
-        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
-                           'Status', 'Master', 'Mirror')
+        tuplDesc = ('Engine', 'Uptime', 'AH', 'FirmWare',
+                   'Status', 'Master', 'Mirror')
+        tuplWidth = (18, 16, 7, 13, 9, 9, 12)
         for i in r:
             print('\n Time: %s\n' % str(i[0]))
             w = i[1:]
-            for d in lstDesc:
-                print(d.center(12), end='')
+            for d in range(len(tuplDesc)):
+                print(tuplDesc[d].ljust(tuplWidth[d]), end='')
             print()
             for p in w:
-                for x in p:
-                    print(x.center(12), end='')
+                for x in range(len(p)):
+                    print(p[x].ljust(tuplWidth[x]), end='')
                 print()
 
     def get_last_record(self):
@@ -611,9 +612,11 @@ if __name__ == '__main__':
     #job_update_interval(3)
     db = DB_collHAAP()
 
-    last_update = db.get_last_record()
+    db.show_N_record(20)
+
+    #last_update = db.get_last_record()
     #print(last_update)
-    print(last_update[0])
+    #print(last_update[0])
     # lstStatusDict = last_update[1]
     # lstStatus = []
     # for i in range(len(lstHAAPAlias)):
@@ -623,7 +626,7 @@ if __name__ == '__main__':
     #schd_web()
     #thrd_web()
     #job_update_interval(3)
-    thrd_web()
+    #thrd_web()
     #main()
     #schd_web()
     pass
