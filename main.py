@@ -333,6 +333,32 @@ class DB_collHAAP(object):
         for i in collHAAP.objects():
             print(i.time, i.engine_status)
 
+    def get_N_record(self, intN):
+        N_record = collHAAP.objects().order_by('-time').limit(intN)
+        lstRecord = []
+        for x in range(len(N_record)):
+            lstRecord.append([])
+            lstRecord[x].append(N_record[x].time)
+            for i in range(len(N_record[x].engine_status)):
+                for k in N_record[x].engine_status[i].keys():
+                    lstRecord[x].append(N_record[x].engine_status[i][k])
+        return lstRecord
+
+    def show_N_record(self,intN)
+        r = self.get_N_record(intN)
+        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
+                           'Status', 'Master', 'Mirror')
+        for i in r:
+            print('\n Time: %s\n' % str(i[0]))
+            w = i[1:]
+            for d in lstDesc:
+                print(d.center(12), end='')
+            print()
+            for p in w:
+                for x in p:
+                    print(x.center(12), end='')
+                print()
+
     def get_last_record(self):
         last_record = collHAAP.objects().order_by('-time').first()
         return(last_record.time, last_record.engine_status)
