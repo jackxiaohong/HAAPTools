@@ -20,10 +20,10 @@ strHelp = '''
         Command           Description
 
         ptes           : Print Port Error of Defined SAN Switch Ports
-        ptcl           : Clear Port Error Counter for Given Ports on Given SAN switch
+        ptcl           : Clear Port Error Counter for Given Port on Given SAN switch
         ptclALL        : Clear Port Error Counter for All Ports on All Defined SAN switches
-        sws            : Print switchshow Info for Given SAN Switch
-        swsALL         : Print switchshow Info for All Defined SAN Switches
+        sws            : Print switchshow Info for Given SAN Switch
+        swsALL         : Print switchshow Info for All Defined SAN Switches
         gt             : Get Trace of All Defined Engine, Save in {trace} Folder
         anls           : Analyse Trace of All Defined Engine
         anlsTrace      : Analyze Trace Files under <Folder>
@@ -35,12 +35,13 @@ strHelp = '''
         sts            : Show Overall Status for All Engines
         st             : Sync Time with Local System For All Engines       
         '''
-# strPTCLHelp = '''
-#     ptcl <Switch_IP> <>
-# '''
+
+strPTCLHelp = '''
+    ptcl <Switch_IP> <Port_Num>
+'''
 
 strSWSHelp = '''
-    sws <Switch_IP>
+    sws <Switch_IP> 
 '''
 
 strAutoCLIHelp = '''
@@ -193,40 +194,46 @@ def _FWUpdate(strEngineIP, strFWFile):
 
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
-    if alert is not None: 
-        if alert: al_st = "AH"
-        else: al_st = "OK"
+    if alert is not None:
+        if alert:
+            al_st = "AH"
+        else:
+            al_st = "OK"
         print("{}: {}".format(strEngineIP, al_st))
-        
+
 # def _ShowEngineInfo(strEngineIP):
 #     engineIns = _HAAP(strEngineIP)
 #     print "{:<17s}:".format("Engine IP"), strEngineIP
 #     print "{:<17s}:".format("Status"), engineIns.get_engine_status()
 #     print "{:<17s}:".format("Firmware version"), engineIns.get_version()
 #     print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
-#      
+#
 #     if engineIns.get_engine_health():
 #         print "{:<17s}: AH".format("Alert Halt")
 #     else:
 #         print "{:<17s}: None".format("Alert Halt")
-#      
+#
 #     if engineIns.is_master_engine():
 #         print "{:<17s}: Yes".format("Master")
 #     else:
 #         print "{:<17s}: No".format("Master")
-#      
+#
 #     mirror_status = engineIns.get_mirror_status()
 #     if mirror_status == 0:
 #         print "{:<17s}: All OK\n".format("Mirror status")
 #     else:
 #         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n"
+
+
 def _ShowEngineInfo():
     dictEngines = _get_HAAPInstance()
     info_lst = []
     for i in lstHAAP:
         info_lst.append(dictEngines[i].infoEngine_lst())
+
     def general_info():
-        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version','Status', 'Master', 'Mirror')
+        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
+                   'Status', 'Master', 'Mirror')
         for strDesc in lstDesc:
             print(strDesc.center(14)),
         print
@@ -236,11 +243,12 @@ def _ShowEngineInfo():
                     print(s.center(14)),
                 else:
                     print("None".center(14)),
-            print 
-    def mirror_info(): #needs optimization    
+            print
+
+    def mirror_info():  # needs optimization
         print "\nMirror Error"
         for i in lstHAAP:
-            print i,":",
+            print i, ":",
             mirror_status = dictEngines[i].get_mirror_status()
             if mirror_status != 0 and mirror_status != -1:
                 print mirror_status
@@ -248,6 +256,7 @@ def _ShowEngineInfo():
                 print "None"
     general_info()
     mirror_info()
+
 
 def _isIP(s):
     p = re.compile(
@@ -282,6 +291,15 @@ def _isFile(s):
     else:
         return False
 
+
+def _isPort(s):
+    if type(s) == int:
+        return True
+    if type(s) == str:
+        if s.isdigit():
+            if type(eval(s)) == int:
+                return True
+    return False
 # ################################################
 # <<<Inside Function Field>>>
 
@@ -300,11 +318,16 @@ def main():
                 _SW(lstSW[i], lstSWPorts[i]).show_porterrors()
 
     elif sys.argv[1] == 'ptcl':
-        if len(sys.argv) != 3:
+        if len(sys.argv) != 4:
             print(strPTCLHelp)
+        elif not _isIP(sys.argv[2]):
+            print('IP Format Wrong. Please Provide Correct Switch IP...')
+        elif not _isPort(sys.argv[3]):
+            print('Switch Port Format Wrong. Please Provide Correct Port Number...')
         else:
-            pass
-        
+            _SW(sys.argv[2], [int(sys.argv[3])]
+                ).clear_porterr_by_port(int(sys.argv[3]))
+
     elif sys.argv[1] == 'ptclALL':
         if len(sys.argv) != 2:
             print(strHelpSingleCommand.format('ptclALL'))
@@ -312,14 +335,20 @@ def main():
             print('IP error. Please check Switch IPs defined in Conf.ini')
         else:
             for i in range(len(lstSW)):
-                _SW(lstSW[i], lstSWPorts[i]).clear_porterr_All()   
-    
-    elif sys.argv[1] == 'sws':
+                _SW(lstSW[i], lstSWPorts[i]).clear_porterr_All()
+
+    elif sys.argv[1] == 'sws':
         pass
-    
-    elif sys.argv[1] == 'swsALL':
-        pass   
-    
+
+    elif sys.argv[1] == 'swsALL':
+        if len(sys.argc) != 2:
+            print(strHelpSingleCommand.format('swsALL'))
+        elif not _checkIPlst(lstSW):
+            print('IP error. Please check Switch IPs defined in Conf.ini')
+        else:
+            for i in range(len(lstSW)):
+                _SW(lstSW[i], lstSWPorts[i])._switchshow()
+
     # save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local
     elif sys.argv[1] == 'bkCFG':
         if len(sys.argv) != 2:
