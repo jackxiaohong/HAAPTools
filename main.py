@@ -460,10 +460,9 @@ def main():
             for i in lstHAAP:
                 engine = _HAAP(i)
                 engine.set_engine_time()
-#                 print("\n" + engine.get_engine_time())
+                print("\n" + engine.get_engine_time())
 
     elif sys.argv[1] == 'test':
-
         _SW(sys.argv[2], [])._switchshow()
 
     else:

@@ -366,20 +366,20 @@ class HAAP():
             now = time.localtime()
             command_time = 'rtc set time {} {} {}'.format(
                 now[3], now[4], now[5])
-            r = self._telnet_Connection.ExecuteCommand(command_time)
+            r = self._TN_Conn.ExecuteCommand(command_time)
             if r is None:
                 print('Execute "rtc set time" failed for Engine "{}"'.format(self._host))
             else:
                 print('Successfully Set Time for Engine "{}"'.format(self._host))
-        if self._telnet_Connection:
+        if self._TN_Conn:
             set_time()
         else:
             self._telnet_connect()
             set_time()
 
     def get_engine_time(self):
-        if self._telnet_Connection:
-            return self._telnet_Connection.ExecuteCommand('rtc')
+        if self._TN_Conn:
+            return self._TN_Conn.ExecuteCommand('rtc')
         else:
             self._telnet_connect()
             return self._telnet_Connection.ExecuteCommand('rtc')
