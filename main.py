@@ -268,21 +268,7 @@ def _isIP(s):
 
 
 def _checkIPlst(lstIP):
-    for i in lstIP:
-        if _isIP(i):
-            continue
-        else:
-            return False
-    return True
-# another way: return wrong IP(s) string ("" or "#wrongIps#")
-#     wrong_IP = ""
-#     for i in lstIP:
-#         chk_pass = _isIP(i)
-#         if chk_pass:
-#             continue
-#         else:
-#             wrong_IP += i
-#     return wrong_IP
+    return all(map(_isIP, lstIP))
 
 
 def _isFile(s):
