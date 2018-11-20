@@ -338,10 +338,15 @@ def main():
                 _SW(lstSW[i], lstSWPorts[i]).clear_porterr_All()
 
     elif sys.argv[1] == 'sws':
-        pass
+        if len(sys.argv) != 3:
+            print(strSWSHelp)
+        elif not _isIP(sys.argv[2]):
+            print('IP Format Wrong. Please Provide Correct Switch IP...')
+        else:
+            _SW(sys.argv[2], [])._switchshow()  # no ports needed
 
     elif sys.argv[1] == 'swsALL':
-        if len(sys.argc) != 2:
+        if len(sys.argv) != 2:
             print(strHelpSingleCommand.format('swsALL'))
         elif not _checkIPlst(lstSW):
             print('IP error. Please check Switch IPs defined in Conf.ini')
