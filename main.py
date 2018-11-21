@@ -334,10 +334,10 @@ class DB_collHAAP(object):
                          date__lt=time_end).order_by('-date')
 
     def haap_list_all(self):
-        for i in collHAAP.objects():
+        for i in collHAAP.objects().order_by('-time'):
             print(i.time, i.engine_status)
 
-    def get_N_record(self, intN):
+    def get_N_record_in_list(self, intN):
         N_record = collHAAP.objects().order_by('-time').limit(intN)
         lstRecord = []
         for x in range(len(N_record)):
@@ -349,7 +349,7 @@ class DB_collHAAP(object):
         return lstRecord
 
     def show_N_record(self,intN):
-        r = self.get_N_record(intN)
+        r = self.get_N_record_in_list(intN)
         tuplDesc = ('Engine', 'Uptime', 'AH', 'FirmWare',
                    'Status', 'Master', 'Mirror')
         tuplWidth = (18, 16, 7, 13, 9, 9, 12)
@@ -641,7 +641,8 @@ if __name__ == '__main__':
     #job_update_interval(3)
     db = DB_collHAAP()
 
-    db.show_N_record(20)
+    db.haap_list_all()
+    db.show_N_record(3)
 
     #last_update = db.get_last_record()
     #print(last_update)
