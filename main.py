@@ -606,7 +606,7 @@ def main():
     elif sys.argv[1] == 'test':
 
         #timing_clct_to_db(15)
-        schd_web()
+        show_N_record(3)
 
     else:
         print(strHelp)

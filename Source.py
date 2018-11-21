@@ -28,7 +28,7 @@ def ShowErr_level1(_class, _func, _Msg, _Error=''):
 '''.format(_Msg, _Error)))
 
 def S(level):
-    if level =1 :
+    if level == 1:
         return ShowErr_level1
 
 def GotoFolder(strFolder):
