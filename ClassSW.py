@@ -37,7 +37,7 @@ class SANSW(object):
                                    self._username,
                                    self._password,
                                    self._timeout)
-            self._strAllPortError = self._SWConn.ExecuteCommand(
+            self._strAllPortError = self._SWConn.exctCMD(
                 'porterrshow')
             return True
         except Exception as E:
@@ -64,12 +64,12 @@ class SANSW(object):
                            resultDataAndErr.group(6).split())
 
         def _putToDict():
-            dicPort_Error = OrderedDict()
+            oddPortError = OrderedDict()
             lstPortErrLines = str(self._strAllPortError).split('\n')
             for intPortNum in self._allSWPort:
                 lstErrInfo = _getErrorAsList(intPortNum, lstPortErrLines)
-                dicPort_Error[intPortNum] = lstErrInfo
-            self._dicPartPortError = dicPort_Error
+                oddPortError[intPortNum] = lstErrInfo
+            self._dicPartPortError = oddPortError
 
         if self._strAllPortError:
             _putToDict()
@@ -85,7 +85,7 @@ class SANSW(object):
         if self._SWConn:
             try:
                 print('Switchshow for SAN Switch {}:\n'.format(self._host))
-                print(self._SWConn.ExecuteCommand('switchshow'))
+                print(self._SWConn.exctCMD('switchshow'))
             except Exception as E:
                 pass
 
@@ -144,7 +144,7 @@ class SANSW(object):
     # @deco_Exception
     def clear_porterr_All(self):
         try:
-            self._SWConn.ExecuteCommand('statsclear')
+            self._SWConn.exctCMD('statsclear')
             print('Clear Error Count for SW "{}" Completely...'.format(
                 self._host))
             return True
@@ -154,7 +154,7 @@ class SANSW(object):
     @deco_Exception
     def clear_porterr_by_port(self, intSWPort):
         try:
-            self._SWConn.ExecuteCommand(
+            self._SWConn.exctCMD(
                 'portstatsclear {}'.format(str(intSWPort)))
             print('Clear Error Count of Port {} for SW "{}" Completely...\
                 '.format(str(intSWPort), self._host))

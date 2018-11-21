@@ -45,7 +45,7 @@ class FTPConn(object):
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Connect to "{}" Fail with Error:'.format(
+                          'FTP Connect to "{}" Failed with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
 
@@ -58,7 +58,7 @@ class FTPConn(object):
                 # print(E)
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Login to "{}" Fail with Error:'.format(
+                          'FTP Login to "{}" Failed with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
 
@@ -88,7 +88,7 @@ class FTPConn(object):
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Download "{}" Fail with Error:'.format(
+                          'FTP Download "{}" Failed with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
 
@@ -121,7 +121,7 @@ class FTPConn(object):
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
                           sys._getframe().f_code.co_name,
-                          'FTP Upload "{}" Fail with Error:'.format(
+                          'FTP Upload "{}" Failed with Error:'.format(
                               self._host),
                           '"{}"'.format(E))
 
@@ -163,7 +163,7 @@ class SSHConn(object):
         except Exception as E:
             s.ShowErr(self.__class__.__name__,
                       sys._getframe().f_code.co_name,
-                      'SSH Connect to "{}" Fail with Error:'.format(
+                      'SSH Connect to "{}" Failed with Error:'.format(
                           self._host),
                       '"%s"' % E)
 
@@ -197,7 +197,7 @@ class SSHConn(object):
     #         print(__name__, E)
     #         print('Upload Failed ...')
 
-    def ExecuteCommand(self, command):
+    def exctCMD(self, command):
         def GetRusult():
             stdin, stdout, stderr = self._client.exec_command(command)
             data = stdout.read()
@@ -215,7 +215,7 @@ class SSHConn(object):
             # else:
             #     s.ShowErr(self.__class__.__name__,
             #               sys._getframe().f_code.co_name,
-            #               'Execute Command "{}" Fail with Error:'.format(
+            #               'Execute Command "{}" Failed with Error:'.format(
             #                   self._host),
             #               E)
 
@@ -262,7 +262,7 @@ class HAAPConn(object):
         except Exception as E:
             s.ShowErr(self.__class__.__name__,
                       sys._getframe().f_code.co_name,
-                      'Telnet Connect to "{}" Fail with Error:'.format(
+                      'Telnet Connect to "{}" Failed with Error:'.format(
                           self._host),
                       '"{}"'.format(E))
 
@@ -271,13 +271,13 @@ class HAAPConn(object):
             return True
         else:
             return False
-        
-    def ExecuteCommand(self, strCommand):
+
+    def exctCMD(self, strCommand):
 
         CLI = self._strCLIPrompt.encode(encoding="utf-8")
         CLI_Conflict = self._strCLIConflict.encode(encoding="utf-8")
 
-        def GetResult():
+        def get_result():
             self._Connection.write(
                 strCommand.encode(encoding="utf-8") + b'\r')
             strResult = str(self._Connection.read_until(
@@ -285,28 +285,29 @@ class HAAPConn(object):
             if self._strCLIPrompt in strResult:
                 return strResult
 
-        def FindCLI():
+        def execute_at_CLI():
+            # Confirm is CLI or Not
             self._Connection.write(b'\r')
             strEnterOutput = self._Connection.read_until(CLI, timeout=1)
 
             if CLI in strEnterOutput:
-                return GetResult()
+                return get_result()
             elif 'HA-AP'.encode(encoding="utf-8") in strEnterOutput:
                 self._Connection.write('7')
                 str7Output = self._Connection.read_until(CLI, timeout=1)
                 if CLI in str7Output:
-                    return GetResult()
+                    return get_result()
                 elif CLI_Conflict in str7Output:
                     self._Connection.write('y')
                     strConfirmCLI = self._Connection.read_until(CLI, timeout=1)
                     if CLI in strConfirmCLI:
-                        return GetResult()
+                        return get_result()
 
         if self._Connection:
-            return FindCLI()
+            return execute_at_CLI()
         else:
             if self._connect():
-                return FindCLI()
+                return execute_at_CLI()
             else:
                 print('Please Check Telnet Connection to "{}" \n\n'.format(
                     self._host))
@@ -320,35 +321,35 @@ class HAAPConn(object):
 if __name__ == '__main__':
     aa = HAAPConn('172.16.254.71', 23, '.com')
     print(aa._Connection)
-    # print(aa.ExecuteCommand('conmgr status'))
+    # print(aa.exctCMD('conmgr status'))
     # print(1)
     # time.sleep(3)
-    # print(aa.ExecuteCommand('conmgr status'))
+    # print(aa.exctCMD('conmgr status'))
     # print(2)
     # time.sleep(3)
-    # print(aa.ExecuteCommand('conmgr status'))
+    # print(aa.exctCMD('conmgr status'))
     # print(3)
     # time.sleep(3)
-    # print(aa.ExecuteCommand('conmgr status'))
+    # print(aa.exctCMD('conmgr status'))
     # print(4)
 
     # lstCommand = ['vpd', 'conmgr status', 'mirror', 'explore b1']
 
     # for i in range(len(lstCommand)):
-    #     result = aa.ExecuteCommand(lstCommand[i])
+    #     result = aa.exctCMD(lstCommand[i])
     #     if result:
     #         print result
     #         i += 1
     #     time.sleep(0.25)
 
     # bb = SSHConn('172.16.254.75', 22, 'admin', 'passwor', 2)
-    # x = bb.ExecuteCommand('switchshow')
+    # x = bb.exctCMD('switchshow')
     # if x:
     #     print(x)
-    # print(bb.ExecuteCommand('pwd'))
+    # print(bb.exctCMD('pwd'))
 
     # cc = HAAPConn('127.0.0.7', 22, '.com', 5)
-    # cc.ExecuteCommand('abc')
+    # cc.exctCMD('abc')
 
     # dd = FTPConn('127.0.0.7', 10021, 'matthew', '.com', 2)
     # if dd.GetFile('.', '.', 'wp.txt', 'bbb'):

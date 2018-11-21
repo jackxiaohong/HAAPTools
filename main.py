@@ -1,14 +1,21 @@
 # coding:utf-8
-
+from __future__ import print_function
 import ClassSW as sw
 import ClassHAAP as haap
 import Source as s
 from collections import OrderedDict as Odd
+from apscheduler.schedulers.blocking import BlockingScheduler
 import os
 import sys
 import datetime
+import time
 import getpass
 import re
+from mongoengine import *
+from threading import Thread
+import thread
+
+from flask import Flask, render_template, redirect, request
 
 try:
     import configparser as cp
@@ -71,6 +78,11 @@ strHelpSingleCommand = '''
 objCFG = cp.ConfigParser(allow_no_value=True)
 objCFG.read('Conf.ini')
 
+# <<<DB Config>>>
+strDBServer = objCFG.get('DBSetting', 'host')
+intDBPort = int(objCFG.get('DBSetting', 'port'))
+strDBName = objCFG.get('DBSetting', 'name')
+# <<<DB Config>>>
 
 # <<<SAN Switch Config>>>
 strSWUser = objCFG.get('SWSetting', 'username')
@@ -93,7 +105,12 @@ else:
 
 
 # <<<HAAP Config>>>
-lstHAAP = list(i[0] for i in objCFG.items('Engines'))
+oddEngines = Odd()
+for i in objCFG.items('Engines'):
+    oddEngines[i[0]] = i[1]
+lstHAAPAlias = list(oddEngines.keys())
+lstHAAP = list(oddEngines.values())
+#lstHAAP = list(i[0] for i in objCFG.items('Engines'))
 intTLevel = int(objCFG.get('TraceSetting', 'TraceLevel'))
 intTNPort = int(objCFG.get('EngineSetting', 'TelnetPort'))
 intFTPPort = int(objCFG.get('EngineSetting', 'FTPPort'))
@@ -132,6 +149,9 @@ strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 
 def _get_TimeNow():
     return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    # t = s.TimeNow()
+    # return '%s-%s-%s-%s-%s-%s' % (t.y(), t.mo(), t.d(),
+    #                               t.h(), t.mi(), t.s())
 
 
 # en-Instance The HAAP by IP...
@@ -246,14 +266,14 @@ def _ShowEngineInfo():
             print
 
     def mirror_info():  # needs optimization
-        print "\nMirror Error"
+        print("\nMirror Error")
         for i in lstHAAP:
-            print i, ":",
+            print(i, ":")
             mirror_status = dictEngines[i].get_mirror_status()
             if mirror_status != 0 and mirror_status != -1:
-                print mirror_status
+                print(mirror_status)
             else:
-                print "None"
+                print("None")
     general_info()
     mirror_info()
 
@@ -286,6 +306,141 @@ def _isPort(s):
             if type(eval(s)) == int:
                 return True
     return False
+
+def get_HAAP_status_list():
+    lstHAAPstatus = []
+    for i in range(len(lstHAAP)):
+        t = {}
+        t[lstHAAPAlias[i]] = _HAAP(lstHAAP[i]).infoEngine_lst()
+        lstHAAPstatus.append(t)
+    #print(lstHAAPstatus)
+    return lstHAAPstatus
+
+
+class collHAAP(Document):
+    time = DateTimeField(default=datetime.datetime.now())
+    engine_status = ListField()
+
+
+class DB_collHAAP(object):
+    connect(strDBName, host=strDBServer, port=intDBPort)
+
+    def haap_insert(self, time_now, lstSTS):
+        t = collHAAP(time=time_now, engine_status=lstSTS)
+        t.save()
+
+    def haap_query(self, time_start, time_end):
+        collHAAP.objects(date__gte=time_start,
+                         date__lt=time_end).order_by('-date')
+
+    def haap_list_all(self):
+        for i in collHAAP.objects():
+            print(i.time, i.engine_status)
+
+    def get_N_record(self, intN):
+        N_record = collHAAP.objects().order_by('-time').limit(intN)
+        lstRecord = []
+        for x in range(len(N_record)):
+            lstRecord.append([])
+            lstRecord[x].append(N_record[x].time)
+            for i in range(len(N_record[x].engine_status)):
+                for k in N_record[x].engine_status[i].keys():
+                    lstRecord[x].append(N_record[x].engine_status[i][k])
+        return lstRecord
+
+    def show_N_record(self,intN):
+        r = self.get_N_record(intN)
+        tuplDesc = ('Engine', 'Uptime', 'AH', 'FirmWare',
+                   'Status', 'Master', 'Mirror')
+        tuplWidth = (18, 16, 7, 13, 9, 9, 12)
+        for i in r:
+            print('\n Time: %s\n' % str(i[0]))
+            w = i[1:]
+            for d in range(len(tuplDesc)):
+                print(tuplDesc[d].ljust(tuplWidth[d]), end='')
+            print()
+            for p in w:
+                for x in range(len(p)):
+                    print(p[x].ljust(tuplWidth[x]), end='')
+                print()
+
+    def get_last_record(self):
+        last_record = collHAAP.objects().order_by('-time').first()
+        return(last_record.time, last_record.engine_status)
+
+def start_web():
+    # import logging
+    # logging.basicConfig()
+    app = Flask(__name__, template_folder='./web/templates',
+                static_folder='./web/static', static_url_path='')
+    # basedir = os.path.abspath(os.path.dirname(__file__))
+    # basedir = 'web'
+
+    @app.route("/")
+    def home():
+        lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
+                   'Status', 'Master', 'Mirror')
+        # lstStatus = []
+        # for i in lstHAAP:
+        #     lstStatus.append(_HAAP(i).infoEngine_lst())
+
+        # lstHAAPstatus = get_HAAP_status_list()
+        refresh_time = ['']
+        db = DB_collHAAP()
+        def get_last_status():
+            last_update = db.get_last_record()
+            print('Last record @ %s' % last_update[0])
+            refresh_time[0] = last_update[0]
+            lstStatusDict = last_update[1]
+            lstStatus = []
+            for i in range(len(lstHAAPAlias)):
+                #print(lstStatusDict[i][lstHAAPAlias[i]])
+                lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
+            return lstStatus
+        
+        return render_template("monitor.html",
+                               Title=lstDesc,
+                               Status=get_last_status(),
+                               refresh_time=refresh_time[0])
+    app.run(debug=False, use_reloader = False, host='0.0.0.0', port=5000)
+
+def job_update_interval(intInterval):
+    t = s.Timing()
+    db = DB_collHAAP()
+    def do_it():
+        n = datetime.datetime.now()
+        do_update = db.haap_insert(n, get_HAAP_status_list())
+        print('update complately...@ %s' % n)
+        return do_update
+    # while True:
+    #     do_it()
+    #     time.sleep(intInterval)
+
+    t.add_interval(do_it, intInterval)
+    t.stt()
+
+def thrd_web():
+    Thread(target= start_web).start()
+    Thread(target= job_update_interval,args=(10,)).start()
+
+def schd_web():
+    t = s.Timing()
+    db = DB_collHAAP()
+    def job_update_interval():
+        do_update = db.haap_insert(get_HAAP_status_list())
+        print('update complately...@ %s' % datetime.datetime.now())
+        return do_update
+    def job_start_web_once():
+        start_web()
+
+    t.add_once(job_start_web_once, '')
+    t.add_interval(job_update_interval, 15)
+    
+    job_update_interval()
+    t.stt()
+    #print('xxx')
+    # app.run(debug=True, host='0.0.0.0', port=5000)
+
 # ################################################
 # <<<Inside Function Field>>>
 
@@ -449,11 +604,58 @@ def main():
                 print("\n" + engine.get_engine_time())
 
     elif sys.argv[1] == 'test':
-        _SW(sys.argv[2], [])._switchshow()
+
+        #timing_clct_to_db(15)
+        schd_web()
 
     else:
         print(strHelp)
 
 
 if __name__ == '__main__':
-    main()
+    # a = DB_collHAAP()
+    # a.insert([1,2,3])
+    # print(a.list_all())
+    # lstSTS = [1, 2, 3]
+    # b = collHAAP(engine_status=lstSTS)
+    # b.save
+
+    # t = collHAAP(engine_status = [79,38])
+    # t.save()
+    # m = DB_collHAAP()
+    # m.get_last_record()
+    # m.haap_insert(['2dse4', '3saff'])
+    # m.haap_list_all()
+    # print(collHAAP.objects().all())
+    # haap_insert([2323, 2323])
+
+    #print(type(get_HAAP_status_list()))
+    
+
+    #db = DB_collHAAP()
+    
+    #db.haap_insert(get_HAAP_status_list())
+    # last_update = db.get_last_record()
+    # print(last_update[1])
+
+    #job_update_interval(3)
+    db = DB_collHAAP()
+
+    db.show_N_record(20)
+
+    #last_update = db.get_last_record()
+    #print(last_update)
+    #print(last_update[0])
+    # lstStatusDict = last_update[1]
+    # lstStatus = []
+    # for i in range(len(lstHAAPAlias)):
+    #     print(lstStatusDict[i][lstHAAPAlias[i]])
+    #     lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
+    # print(lstStatus)
+    #schd_web()
+    #thrd_web()
+    #job_update_interval(3)
+    #thrd_web()
+    #main()
+    #schd_web()
+    pass
