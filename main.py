@@ -17,26 +17,35 @@ except Exception:
 
 # <<<Help String Feild>>>
 strHelp = '''
-        Command             Description
+        Command           Description
 
-        -porterrshow      : Show PortError collected from SAN switches
-        -clearporterrorAll: Clear ALL Ports' PortError Counter on SAN switches
-
-        -getTrace         : Save engines' trace files under TraceFolder
-        -analyseHAAP      : Analyze trace files under TraceFolder
-        -analyseTrace     : Analyze trace files under <Folder>
-        -CFGbackup        : Save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local 
-        -autoCLI          : Execute commands listed in <File> on an <Engine>
-        -pc               : Execute periodic-check commands on an <Engine>
-        -pcALL            : Execute periodic-check commands on ALL Engines
-        -updateFW         : Update an <Engine>'s firmware based on <Firmware_File>
-        -healthHAAP       : Show health status (AH) for All engines
-        -infoHAAP         : Show overall Info for All engines     
-        -setTime          : Set date, day, and time as local time for All engines
+        ptes           : Print Port Error of Defined SAN Switch Ports
+        ptcl           : Clear Port Error Counter for Given Port on Given SAN switch
+        ptclALL        : Clear Port Error Counter for All Ports on All Defined SAN switches
+        sws            : Print switchshow Info for Given SAN Switch
+        swsALL         : Print switchshow Info for All Defined SAN Switches
+        gt             : Get Trace of All Defined Engine, Save in {trace} Folder
+        anls           : Analyse Trace of All Defined Engine
+        anlsTrace      : Analyze Trace Files under <Folder>
+        bkCFG          : Backup Config for All Defined Engines, Save in {cfg} Folder
+        ec             : Execute Commands listed in <File> on Given Engine
+        pc             : Execute Periodic Check on Given Engine, Save in {pc} Folder
+        pcALL          : Execute Periodic Check on All Defined Engine, Save in {pc} Folder
+        chgFW          : Change Firmware for Given Engine
+        sts            : Show Overall Status for All Engines
+        st             : Sync Time with Local System For All Engines       
         '''
 
+strPTCLHelp = '''
+    ptcl <Switch_IP> <Port_Num>
+'''
+
+strSWSHelp = '''
+    sws <Switch_IP> 
+'''
+
 strAutoCLIHelp = '''
-    autoCLI <Engine_IP> <Command_File>
+    ec <Engine_IP> <Command_File>
 '''
 
 strPCHelp = '''
@@ -44,11 +53,11 @@ strPCHelp = '''
 '''
 
 strHelpAnalyseTrace = '''
-    analyseTrace <Trace_Folder>
+    anlsTrace <Trace_Folder>
 '''
 
 strHelpUpdateFW = '''
-    updateFW <Engine_IP> <Firmware_File>
+    chgFW <Engine_IP> <Firmware_File>
 '''
 
 strHelpSingleCommand = '''
@@ -185,40 +194,46 @@ def _FWUpdate(strEngineIP, strFWFile):
 
 def _EngineHealth(strEngineIP):
     alert = _HAAP(strEngineIP).get_engine_health()
-    if alert is not None: 
-        if alert: al_st = "AH"
-        else: al_st = "OK"
+    if alert is not None:
+        if alert:
+            al_st = "AH"
+        else:
+            al_st = "OK"
         print("{}: {}".format(strEngineIP, al_st))
-        
+
 # def _ShowEngineInfo(strEngineIP):
 #     engineIns = _HAAP(strEngineIP)
 #     print "{:<17s}:".format("Engine IP"), strEngineIP
 #     print "{:<17s}:".format("Status"), engineIns.get_engine_status()
 #     print "{:<17s}:".format("Firmware version"), engineIns.get_version()
 #     print "{:<17s}:".format("Uptime"), engineIns.get_uptime()
-#      
+#
 #     if engineIns.get_engine_health():
 #         print "{:<17s}: AH".format("Alert Halt")
 #     else:
 #         print "{:<17s}: None".format("Alert Halt")
-#      
+#
 #     if engineIns.is_master_engine():
 #         print "{:<17s}: Yes".format("Master")
 #     else:
 #         print "{:<17s}: No".format("Master")
-#      
+#
 #     mirror_status = engineIns.get_mirror_status()
 #     if mirror_status == 0:
 #         print "{:<17s}: All OK\n".format("Mirror status")
 #     else:
 #         print "{:<17s}: \n".format("Mirror status"), mirror_status, "\n"
+
+
 def _ShowEngineInfo():
     dictEngines = _get_HAAPInstance()
     info_lst = []
     for i in lstHAAP:
         info_lst.append(dictEngines[i].infoEngine_lst())
+
     def general_info():
-        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version','Status', 'Master', 'Mirror')
+        lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
+                   'Status', 'Master', 'Mirror')
         for strDesc in lstDesc:
             print(strDesc.center(14)),
         print
@@ -228,11 +243,12 @@ def _ShowEngineInfo():
                     print(s.center(14)),
                 else:
                     print("None".center(14)),
-            print 
-    def mirror_info(): #needs optimization    
+            print
+
+    def mirror_info():  # needs optimization
         print "\nMirror Error"
         for i in lstHAAP:
-            print i,":",
+            print i, ":",
             mirror_status = dictEngines[i].get_mirror_status()
             if mirror_status != 0 and mirror_status != -1:
                 print mirror_status
@@ -240,6 +256,7 @@ def _ShowEngineInfo():
                 print "None"
     general_info()
     mirror_info()
+
 
 def _isIP(s):
     p = re.compile(
@@ -251,21 +268,7 @@ def _isIP(s):
 
 
 def _checkIPlst(lstIP):
-    for i in lstIP:
-        if _isIP(i):
-            continue
-        else:
-            return False
-    return True
-# another way: return wrong IP(s) string ("" or "#wrongIps#")
-#     wrong_IP = ""
-#     for i in lstIP:
-#         chk_pass = _isIP(i)
-#         if chk_pass:
-#             continue
-#         else:
-#             wrong_IP += i
-#     return wrong_IP
+    return all(map(_isIP, lstIP))
 
 
 def _isFile(s):
@@ -274,6 +277,15 @@ def _isFile(s):
     else:
         return False
 
+
+def _isPort(s):
+    if type(s) == int:
+        return True
+    if type(s) == str:
+        if s.isdigit():
+            if type(eval(s)) == int:
+                return True
+    return False
 # ################################################
 # <<<Inside Function Field>>>
 
@@ -282,28 +294,56 @@ def main():
     if len(sys.argv) == 1:
         print(strHelp)
 
-    elif sys.argv[1] == 'porterrshow':
+    elif sys.argv[1] == 'ptes':
         if len(sys.argv) != 2:
-            print(strHelpSingleCommand.format('porterrshow'))
+            print(strHelpSingleCommand.format('ptes'))
         elif not _checkIPlst(lstSW):
             print('IP error. Please check Switch IPs defined in "Conf.ini"')
         else:
             for i in range(len(lstSW)):
                 _SW(lstSW[i], lstSWPorts[i]).show_porterrors()
 
-    elif sys.argv[1] == 'clearporterrorAll':
+    elif sys.argv[1] == 'ptcl':
+        if len(sys.argv) != 4:
+            print(strPTCLHelp)
+        elif not _isIP(sys.argv[2]):
+            print('IP Format Wrong. Please Provide Correct Switch IP...')
+        elif not _isPort(sys.argv[3]):
+            print('Switch Port Format Wrong. Please Provide Correct Port Number...')
+        else:
+            _SW(sys.argv[2], [int(sys.argv[3])]
+                ).clear_porterr_by_port(int(sys.argv[3]))
+
+    elif sys.argv[1] == 'ptclALL':
         if len(sys.argv) != 2:
-            print(strHelpSingleCommand.format('clearporterrorAll'))
+            print(strHelpSingleCommand.format('ptclALL'))
         elif not _checkIPlst(lstSW):
             print('IP error. Please check Switch IPs defined in Conf.ini')
         else:
             for i in range(len(lstSW)):
                 _SW(lstSW[i], lstSWPorts[i]).clear_porterr_All()
 
-    # save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local
-    elif sys.argv[1] == 'CFGbackup':
+    elif sys.argv[1] == 'sws':
+        if len(sys.argv) != 3:
+            print(strSWSHelp)
+        elif not _isIP(sys.argv[2]):
+            print('IP Format Wrong. Please Provide Correct Switch IP...')
+        else:
+            _SW(sys.argv[2], [])._switchshow()  # no ports needed
+
+    elif sys.argv[1] == 'swsALL':
         if len(sys.argv) != 2:
-            print(strHelpSingleCommand.format('CFGbackup'))
+            print(strHelpSingleCommand.format('swsALL'))
+        elif not _checkIPlst(lstSW):
+            print('IP error. Please check Switch IPs defined in Conf.ini')
+        else:
+            for i in range(len(lstSW)):
+                _SW(lstSW[i], lstSWPorts[i])._switchshow()
+
+    # save engines' 'automap.cfg', 'cm.cfg', 'san.cfg' files to local
+    elif sys.argv[1] == 'bkCFG':
+        if len(sys.argv) != 2:
+            print(strHelpSingleCommand.format('bkCFG'))
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
@@ -312,9 +352,9 @@ def main():
                 _get_HAAPInstance()[i].backup(strBackupFolder)
 
     # get engines' trace files under TraceFolder based on Trace levels
-    elif sys.argv[1] == 'getTrace':
+    elif sys.argv[1] == 'gt':
         if len(sys.argv) != 2:
-            print(strHelpSingleCommand.format('getTrace'))
+            print(strHelpSingleCommand.format('gt'))
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
@@ -324,9 +364,9 @@ def main():
             for i in range(len(lstHAAP)):
                 _HAAP(lstHAAP[i]).get_trace(strTraceFolder, intTLevel)
 
-    elif sys.argv[1] == 'analyseHAAP':
+    elif sys.argv[1] == 'anls':
         if len(sys.argv) != 2:
-            print(strHelpSingleCommand.format('analyseHAAP'))
+            print(strHelpSingleCommand.format('anls'))
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
@@ -335,7 +375,7 @@ def main():
                 _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
             _TraceAnalyse(strTraceFolder)
 
-    elif sys.argv[1] == 'analyseTrace':
+    elif sys.argv[1] == 'anlsTrace':
         if len(sys.argv) != 3:
             print(strHelpAnalyseTrace)
         elif isinstance(sys.argv[2], str):
@@ -343,7 +383,7 @@ def main():
         else:
             print('Please Provide Trace Folder To Analyse ...')
 
-    elif sys.argv[1] == 'autoCLI':
+    elif sys.argv[1] == 'ec':
         if len(sys.argv) != 4:
             print(strAutoCLIHelp)
         elif not _isIP(sys.argv[2]):
@@ -370,7 +410,7 @@ def main():
             for i in lstHAAP:
                 _periodic_check(i)
 
-    elif sys.argv[1] == 'updateFW':
+    elif sys.argv[1] == 'chgFW':
         if len(sys.argv) != 4:
             print(strHelpUpdateFW)
         elif not _isIP(sys.argv[2]):
@@ -380,36 +420,35 @@ def main():
         else:
             _FWUpdate(sys.argv[2], sys.argv[3])
 
-    elif sys.argv[1] == 'healthHAAP':
-        if len(sys.argv) != 2:
-            print(strHelpSingleCommand.format('healthHAAP'))
-        elif not _checkIPlst(lstHAAP):
-            print('IP error. Please check Engine IPs defined in Conf.ini')
-        else:
-            for i in lstHAAP:
-                _EngineHealth(i)
+#     elif sys.argv[1] == 'healthHAAP':
+#         if len(sys.argv) != 2:
+#             print(strHelpSingleCommand.format('healthHAAP'))
+#         elif not _checkIPlst(lstHAAP):
+#             print('IP error. Please check Engine IPs defined in Conf.ini')
+#         else:
+#             for i in lstHAAP:
+#                 _EngineHealth(i)
 
-    elif sys.argv[1] == 'infoHAAP':
+    elif sys.argv[1] == 'sts':
         if len(sys.argv) != 2:
-            print(strHelpSingleCommand.format('healthHAAP'))
+            print(strHelpSingleCommand.format('sts'))
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
             _ShowEngineInfo()
 
-    elif sys.argv[1] == 'setTime':
+    elif sys.argv[1] == 'st':
         if len(sys.argv) != 2:
-            print(strHelpSingleCommand.format('setTime'))
+            print(strHelpSingleCommand.format('st'))
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
             for i in lstHAAP:
-                engine = _get_HAAPInstance()[i]
+                engine = _HAAP(i)
                 engine.set_engine_time()
-#                 print("\n" + engine.get_engine_time())
+                print("\n" + engine.get_engine_time())
 
     elif sys.argv[1] == 'test':
-
         _SW(sys.argv[2], [])._switchshow()
 
     else:

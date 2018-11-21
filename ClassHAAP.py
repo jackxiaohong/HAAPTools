@@ -4,7 +4,6 @@ from collections import OrderedDict
 import os
 import time
 import Source as s
-import datetime
 
 
 def deco_OutFromFolder(func):
@@ -66,44 +65,34 @@ class HAAP():
 
     def get_engine_status(self):
         if self._TN_Conn:
-            strEnter = self._TN_Conn.ExecuteCommand('')
+            strEngine = self._TN_Conn.ExecuteCommand('engine')
         else:
             self._telnet_connect()
-            strEnter = self._TN_Conn.ExecuteCommand('')
-        reCLI = re.compile(r'CLI>')
-        if reCLI.search(strEnter):
-            return "ONLINE"
+            strEngine = self._TN_Conn.ExecuteCommand('engine')
+        if strEngine is None:
+            print "Get Online Status Failed for Engine {}".format(self._host)
         else:
-            return "offline"
-
-    @deco_Exception
-    def get_engine_health(self):
-        strVPD_Info = self.get_vpd()
-        reAL = re.compile(r'Alert:\s(\S*)')
-        result_reAL = reAL.search(strVPD_Info)
-        if result_reAL is None:
-            print('get engine health status failed...')
-        else:
-            if result_reAL.group(1) == "None":
-                return 0
+            reCLI = re.compile(r'>>\s*\d*\s*(\(M\))*\s*Online')
+            if reCLI.search(strEngine):
+                return "ONLINE"
             else:
                 return "offline"
 
-    def get_engine_health(self, strVPD_Info=None):
-        if strVPD_Info is None:
-            strVPD_Info = self.get_vpd()
-        if strVPD_Info is None:
-            print("Get Health Status Failed for Engine {}".format(self._host))
-        else:
-            reAL = re.compile(r'Alert:\s(\S*)')
-            result_reAL = reAL.search(strVPD_Info)
-            if result_reAL is None:
+    def get_engine_health(self):
+        if self.get_engine_status() == "ONLINE":
+            if self._TN_Conn:
+                strEnter = self._TN_Conn.ExecuteCommand('')
+            else:
+                self._telnet_connect()
+                strEnter = self._TN_Conn.ExecuteCommand('')
+            if strEnter is None:
                 print("Get Health Status Failed for Engine {}".format(self._host))
             else:
-                if result_reAL.group(1) == "None":
-                    return 0  # 0 means engine is healthy
+                reAL = re.compile('AH_CLI')
+                if reAL.search(strEnter):
+                    return 1  # 1 means engine is not healthy (AH)
                 else:
-                    return 1  # 1 means engine has AH
+                    return 0  # 0 means engine is healthy
 
     def get_uptime(self, command="human", strVPD_Info=None):
         if strVPD_Info is None:
@@ -168,28 +157,8 @@ class HAAP():
     @deco_Exception
     def get_mirror_status(self):
         strMirror = self.get_mirror_info()
-        reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  # e.g." 33281(0x8201)"
-        reNoMirror = re.compile(r'No mirrors defined')
-
-        if reMirrorID.search(strMirror):
-            error_line = ""
-            reMirrorStatus = re.compile(r'\d+\s\((\D*)\)')  # e.g."2 (OK )"
-            lines = list(filter(None, strMirror.split("\n")))
-
-            for line in lines:
-                if reMirrorID.match(line):
-                    mirror_ok = True
-                    mem_stat = reMirrorStatus.findall(line)
-                    for status in mem_stat:
-                        if status.strip() != 'OK':
-                            mirror_ok = False
-                    if not mirror_ok:
-                        error_line += line + "\n"
-            if error_line:
-                return error_line
-            else:
-                return 0
-
+        if strMirror is None:
+            print("Get Mirror Status Failed for Engine {}".format(self._host))
         else:
             reMirrorID = re.compile(r'\s\d+\(0x\d+\)')  # e.g." 33281(0x8201)"
             reNoMirror = re.compile(r'No mirrors defined')
@@ -363,7 +332,7 @@ class HAAP():
 
         ip = self._host
         uptime = self.get_uptime(strVPD_Info=strVPD)
-        ah = self.get_engine_health(strVPD_Info=strVPD)
+        ah = self.get_engine_health()
         if ah == 1:
             ah = "AH"
         elif ah == 0:
@@ -392,55 +361,24 @@ class HAAP():
         return [ip, uptime, ah, version, status, master, mr_st]
 
     def set_engine_time(self):
-        def check_response(actual_response, cmd_line):
-            if actual_response is None:
-                return False
-            else:
-                return True
-            # More checks needs here
-#                 if actual_response == correct_response.format(cmd_line):
-#                     return True
-#                 else:
-#                     return False
-
         def set_time():
-            now = datetime.datetime.now()
-            y = now.year
-            m = now.month
-            d = now.day
-            hr = now.hour
-            min = now.minute
-            sec = now.second
-            weekday = now.isoweekday() + 1
-            if weekday > 7:
-                weekday = 1
-
-            command_date = 'rtc set date {} {} {}'.format(m, d, y - 2000)
-            r1 = self._telnet_Connection.ExecuteCommand(command_date)
-            if not check_response(r1, command_date):
-                print('Execute "rtc set date" failed for Engine "{}"'.format(self._host))
-
-            command_time = 'rtc set time {} {} {}'.format(hr, min, sec)
-            r2 = self._telnet_Connection.ExecuteCommand(command_time)
-            if not check_response(r2, command_time):
+            now = time.localtime()
+            command_time = 'rtc set time {} {} {}'.format(
+                now[3], now[4], now[5])
+            r = self._TN_Conn.ExecuteCommand(command_time)
+            if r is None:
                 print('Execute "rtc set time" failed for Engine "{}"'.format(self._host))
-
-            command_day = 'rtc set day {}'.format(weekday)
-            r3 = self._telnet_Connection.ExecuteCommand(command_day)
-            if not check_response(r3, command_day):
-                print('Execute "rtc set day" failed for Engine "{}"'.format(self._host))
             else:
                 print('Successfully Set Time for Engine "{}"'.format(self._host))
-
-        if self._telnet_Connection:
+        if self._TN_Conn:
             set_time()
         else:
             self._telnet_connect()
             set_time()
 
     def get_engine_time(self):
-        if self._telnet_Connection:
-            return self._telnet_Connection.ExecuteCommand('rtc')
+        if self._TN_Conn:
+            return self._TN_Conn.ExecuteCommand('rtc')
         else:
             self._telnet_connect()
             return self._telnet_Connection.ExecuteCommand('rtc')
@@ -451,7 +389,7 @@ if __name__ == '__main__':
 #     print(aa.get_vpd())
 #     print(aa.get_uptime('list'))
 #     a = HAAP('10.203.1.111', 23, '', 21)
-    aa.set_engine_time()
+    print aa.get_engine_health()
 #     print a.get_engine_status()
 #     print a.get_engine_health()
 #     print a.get_uptime(command="human")
@@ -465,4 +403,3 @@ if __name__ == '__main__':
 
     # print(w.getwelcome())
     pass
-
