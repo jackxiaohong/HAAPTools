@@ -370,11 +370,10 @@ class HAAP():
                 mr_st = "NOT ok"
         return [ip, uptime, ah, version, status, master, mr_st]
 
-
     def set_time(self):
         def _exct_cmd():
             t = s.TimeNow()
-            
+
             def complete_print(strDesc):
                 print('\tSet  %-13s for Engine "%s" Completely...\
                         ' % ('"%s"' % strDesc, self._host))
@@ -390,7 +389,10 @@ class HAAP():
                             t.y() - 2000, t.mo(), t.d())):
                         complete_print('Date')
                         # Set Day of the Week
-                        if self._TN_Conn.exctCMD('rtc set day %d' % t.wd()):
+                        wd = t.wd() + 2
+                        if wd == 8:
+                            wd - 7
+                        if self._TN_Conn.exctCMD('rtc set day %d' % wd):
                             complete_print('Day_of_Week')
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
