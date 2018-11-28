@@ -260,15 +260,15 @@ def _ShowEngineInfo():
         lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
                    'Status', 'Master', 'Mirror')
         for strDesc in lstDesc:
-            print(strDesc.center(14)),
-        print
+            print(strDesc.center(14), end = ''),
+        print()
         for i in info_lst:
             for s in i:
                 if s is not None:
-                    print(s.center(14)),
+                    print(s.center(14), end = ''),
                 else:
-                    print("None".center(14)),
-            print
+                    print("None".center(14), end = ''),
+            print()
 
     def mirror_info():  # needs optimization
         print("\nMirror Error")
