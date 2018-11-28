@@ -385,6 +385,7 @@ def get_engine_from_db():
     for i in range(len(lstHAAPAlias)):
         #print(lstStatusDict[i][lstHAAPAlias[i]])
         lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
+        # print(lstStatus)
     return refresh_time,lstStatus
 
 def start_web(mode):
@@ -397,7 +398,10 @@ def start_web(mode):
                    'Status', 'Master', 'Mirror')
         if mode == 'rt':
             refresh_time = _get_TimeNow_Human()
-            Status = get_HAAP_status_list()
+            Status = []
+            dictEngines = get_HAAP_status_list()
+            for i in range(len(lstHAAPAlias)):
+                Status.append(dictEngines[i][lstHAAPAlias[i]])
             print(Status)
         elif mode == 'db':
             tuplHAAP = get_engine_from_db()
@@ -406,7 +410,7 @@ def start_web(mode):
                 refresh_time = tuplHAAP[0]
                 Status = tuplHAAP[1]
             else:
-                refresh_time = _get_TimeNow_Folder_Human()
+                refresh_time = _get_TimeNow_Human()
                 Status = None
 
         return render_template("monitor.html",
@@ -430,31 +434,43 @@ def job_update_interval(intInterval):
     t.add_interval(do_it, intInterval)
     t.stt()
 
-def thrd_web():
-    Thread.setDaemon(True)
-    Thread(target= start_web, args='db').start()
-    Thread(target= job_update_interval, args=(10,)).start()
-    try:
-        while Thread().isAlive():
-            pass
-    except KeyboardInterrupt:
-        print('stopped by keyboard')
 
-def schd_web():
+def DB_Update_interval(intSec):
     t = s.Timing()
     db = DB_collHAAP()
     def job_update_interval():
         do_update = db.haap_insert(get_HAAP_status_list())
         print('update complately...@ %s' % datetime.datetime.now())
         return do_update
-    def job_start_web_once():
-        start_web()
 
-    t.add_once(job_start_web_once, '')
-    t.add_interval(job_update_interval, 15)
-    
-    job_update_interval()
+    t.add_interval(job_update_interval, intSec)
     t.stt()
+
+def thrd_web():
+    # t = Thread()
+    # Thread(target= start_web, args='db').start()
+    # Thread(target= job_update_interval, args=(10,)).start()
+    # try:
+    #     while Thread().isAlive():
+    #         pass
+    # except KeyboardInterrupt:
+    #     print('stopped by keyboard')
+    t1 = Thread(target= start_web, args=('db',))
+    t2 = Thread(target=job_update_interval, args=(10,))
+    
+    t1.setDaemon(True)
+    t2.setDaemon(True)
+    t1.start()
+    t2.start()
+    try:
+        while t2.isAlive():
+            pass
+        while t1.isAlive():
+            pass
+    except KeyboardInterrupt:
+        print('stopped by keyboard')
+
+
     #print('xxx')
     # app.run(debug=True, host='0.0.0.0', port=5000)
 
@@ -623,7 +639,7 @@ def main():
         start_web('rt')
 
     elif sys.argv[1] == 'wdb':
-        start_web('db')
+        thrd_web()
 
     elif sys.argv[1] == 'test':
 
@@ -638,8 +654,10 @@ if __name__ == '__main__':
     # start_web('rt')
 
 
-
+    #job_update_interval(3)
     main()
+    #print(get_HAAP_status_list())
+    #DB_Update_interval(10)
     # a = DB_collHAAP()
     # a.insert([1,2,3])
     # print(a.list_all())
