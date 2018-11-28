@@ -4,11 +4,31 @@ import sys
 import time
 from mongoengine import *
 from apscheduler.schedulers.blocking import BlockingScheduler
+import re
+import xlwt
 
 # read from conf.ini level = 1
+error_level = 1
 
-def ShowErr(_class, _func, _Msg, _Error=''):
-    print(str('''
+# def ShowErr_level3(_class, _func, _Msg, _Error=''):
+#     pass
+
+def ShowErr(*argvs):
+    if len(argvs) == 3:
+        argvs[3] = ''
+
+    if error_level == 1:
+        print(str('''
+----------------------------------------------------------------------------
+|*Error Message:                                                           |
+|    Error Message: {:<55}|
+|        {:<66}|
+----------------------------------------------------------------------------\
+'''.format(argvs[2], argvs[3])))
+    elif error_level == 2:
+        return ShowErr_level2(argvs)
+    elif error_level == 3:
+        print(str('''
 ----------------------------------------------------------------------------
 |*Error Message:                                                           |
 |    Class Name :   {:<55}|
@@ -16,20 +36,7 @@ def ShowErr(_class, _func, _Msg, _Error=''):
 |    Error Message: {:<55}|
 |        {:<66}|
 ----------------------------------------------------------------------------\
-'''.format(_class, _func, _Msg, _Error)))
-
-def ShowErr_level1(_class, _func, _Msg, _Error=''):
-    print(str('''
-----------------------------------------------------------------------------
-|*Error Message:                                                           |
-|    Error Message: {:<55}|
-|        {:<66}|
-----------------------------------------------------------------------------\
-'''.format(_Msg, _Error)))
-
-def S(level):
-    if level == 1:
-        return ShowErr_level1
+'''.format(argvs[0], argvs[1], argvs[2], argvs[3])))
 
 def GotoFolder(strFolder):
     def _mkdir():
@@ -130,8 +137,6 @@ class TimeNow(object):
 
 
 def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):
-    import re
-    import xlwt
 
     def _read_file(strFileName):
         try:

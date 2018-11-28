@@ -40,7 +40,9 @@ strHelp = '''
         pcALL          : Execute Periodic Check on All Defined Engine, Save in {pc} Folder
         chgFW          : Change Firmware for Given Engine
         sts            : Show Overall Status for All Engines
-        st             : Sync Time with Local System For All Engines       
+        st             : Sync Time with Local System For All Engines
+        wrt            : Start Web Update Real Time
+        wdb            : Start Web Update from DataBase       
         '''
 
 strPTCLHelp = '''
@@ -148,7 +150,7 @@ strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 
 
 def _get_TimeNow():
-    return datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+    return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     # t = s.TimeNow()
     # return '%s-%s-%s-%s-%s-%s' % (t.y(), t.mo(), t.d(),
     #                               t.h(), t.mi(), t.s())
@@ -313,7 +315,6 @@ def get_HAAP_status_list():
         t = {}
         t[lstHAAPAlias[i]] = _HAAP(lstHAAP[i]).infoEngine_lst()
         lstHAAPstatus.append(t)
-    #print(lstHAAPstatus)
     return lstHAAPstatus
 
 
@@ -368,40 +369,46 @@ class DB_collHAAP(object):
         last_record = collHAAP.objects().order_by('-time').first()
         return(last_record.time, last_record.engine_status)
 
-def start_web():
-    # import logging
-    # logging.basicConfig()
+
+def get_engine_from_db():
+    # refresh_time = ['']
+    db = DB_collHAAP()
+    def get_last_status():
+        last_update = db.get_last_record()
+        print('Last record @ %s' % last_update[0])
+        refresh_time = last_update[0]
+        lstStatusDict = last_update[1]
+        lstStatus = []
+        for i in range(len(lstHAAPAlias)):
+            #print(lstStatusDict[i][lstHAAPAlias[i]])
+            lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
+        return refresh_time,lstStatus
+
+def start_web(mode):
     app = Flask(__name__, template_folder='./web/templates',
                 static_folder='./web/static', static_url_path='')
-    # basedir = os.path.abspath(os.path.dirname(__file__))
-    # basedir = 'web'
 
     @app.route("/")
     def home():
         lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
                    'Status', 'Master', 'Mirror')
-        # lstStatus = []
-        # for i in lstHAAP:
-        #     lstStatus.append(_HAAP(i).infoEngine_lst())
+        if mode == 'rt':
+            refresh_time = _get_TimeNow()
+            Status = get_HAAP_status_list()
+            print(Status)
+        elif mode == 'db':
+            tuplHAAP = get_engine_from_db()
+            if tuplHAAP:
+                refresh_time = tuplHAAP[0]
+                Status = tuplHAAP[0]
+            else:
+                refresh_time = _get_TimeNow()
+                Status = None
 
-        # lstHAAPstatus = get_HAAP_status_list()
-        refresh_time = ['']
-        db = DB_collHAAP()
-        def get_last_status():
-            last_update = db.get_last_record()
-            print('Last record @ %s' % last_update[0])
-            refresh_time[0] = last_update[0]
-            lstStatusDict = last_update[1]
-            lstStatus = []
-            for i in range(len(lstHAAPAlias)):
-                #print(lstStatusDict[i][lstHAAPAlias[i]])
-                lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
-            return lstStatus
-        
         return render_template("monitor.html",
                                Title=lstDesc,
-                               Status=get_last_status(),
-                               refresh_time=refresh_time[0])
+                               refresh_time=refresh_time,
+                               Status=Status)
     app.run(debug=False, use_reloader = False, host='0.0.0.0', port=5000)
 
 def job_update_interval(intInterval):
@@ -420,8 +427,14 @@ def job_update_interval(intInterval):
     t.stt()
 
 def thrd_web():
-    Thread(target= start_web).start()
-    Thread(target= job_update_interval,args=(10,)).start()
+    Thread.setDaemon(True)
+    Thread(target= start_web, args='db').start()
+    Thread(target= job_update_interval, args=(10,)).start()
+    try:
+        while Thread().isAlive():
+            pass
+    except KeyboardInterrupt:
+        print('stopped by keyboard')
 
 def schd_web():
     t = s.Timing()
@@ -603,6 +616,12 @@ def main():
                 engine.set_engine_time()
                 print("\n" + engine.get_engine_time())
 
+    elif sys.argv[1] == 'wrt':
+        start_web('rt')
+
+    elif sys.argv[1] == 'wdb':
+        start_web('db')
+
     elif sys.argv[1] == 'test':
 
         #timing_clct_to_db(15)
@@ -613,6 +632,11 @@ def main():
 
 
 if __name__ == '__main__':
+    # start_web('rt')
+
+
+
+    main()
     # a = DB_collHAAP()
     # a.insert([1,2,3])
     # print(a.list_all())
@@ -639,10 +663,10 @@ if __name__ == '__main__':
     # print(last_update[1])
 
     #job_update_interval(3)
-    db = DB_collHAAP()
+    # db = DB_collHAAP()
 
-    db.haap_list_all()
-    db.show_N_record(3)
+    # db.haap_list_all()
+    # db.show_N_record(3)
 
     #last_update = db.get_last_record()
     #print(last_update)
@@ -657,6 +681,6 @@ if __name__ == '__main__':
     #thrd_web()
     #job_update_interval(3)
     #thrd_web()
-    #main()
+    
     #schd_web()
     pass

@@ -66,10 +66,10 @@ class HAAP():
 
     def get_engine_status(self):
         if self._TN_Conn:
-            strEngine = self._TN_Conn.ExecuteCommand('engine')
+            strEngine = self._TN_Conn.exctCMD('engine')
         else:
             self._telnet_connect()
-            strEngine = self._TN_Conn.ExecuteCommand('engine')
+            strEngine = self._TN_Conn.exctCMD('engine')
         if strEngine is None:
             print "Get Online Status Failed for Engine {}".format(self._host)
         else:
@@ -82,10 +82,10 @@ class HAAP():
     def get_engine_health(self):
         if self.get_engine_status() == "ONLINE":
             if self._TN_Conn:
-                strEnter = self._TN_Conn.ExecuteCommand('')
+                strEnter = self._TN_Conn.exctCMD('')
             else:
                 self._telnet_connect()
-                strEnter = self._TN_Conn.ExecuteCommand('')
+                strEnter = self._TN_Conn.exctCMD('')
             if strEnter is None:
                 print("Get Health Status Failed for Engine {}".format(self._host))
             else:
