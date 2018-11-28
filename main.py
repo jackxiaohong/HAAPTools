@@ -149,8 +149,11 @@ strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 # ################################################
 
 
-def _get_TimeNow():
+def _get_TimeNow_Human():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+def _get_TimeNow_Folder():
+    return datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     # t = s.TimeNow()
     # return '%s-%s-%s-%s-%s-%s' % (t.y(), t.mo(), t.d(),
     #                               t.h(), t.mi(), t.s())
@@ -202,7 +205,7 @@ def _periodic_check(strEngineIP):
     _HAAP(strEngineIP).periodic_check(lstCheckCMD,
                                       strPCFolder,
                                       'PC_{}_{}.log'.format(
-                                          _get_TimeNow(), strEngineIP))
+                                          _get_TimeNow_Folder(), strEngineIP))
 
 
 # execute cmds in file and print the results
@@ -373,16 +376,16 @@ class DB_collHAAP(object):
 def get_engine_from_db():
     # refresh_time = ['']
     db = DB_collHAAP()
-    def get_last_status():
-        last_update = db.get_last_record()
-        print('Last record @ %s' % last_update[0])
-        refresh_time = last_update[0]
-        lstStatusDict = last_update[1]
-        lstStatus = []
-        for i in range(len(lstHAAPAlias)):
-            #print(lstStatusDict[i][lstHAAPAlias[i]])
-            lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
-        return refresh_time,lstStatus
+    # def get_last_status():
+    last_update = db.get_last_record()
+    print('Last record @ %s' % last_update[0])
+    refresh_time = last_update[0]
+    lstStatusDict = last_update[1]
+    lstStatus = []
+    for i in range(len(lstHAAPAlias)):
+        #print(lstStatusDict[i][lstHAAPAlias[i]])
+        lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
+    return refresh_time,lstStatus
 
 def start_web(mode):
     app = Flask(__name__, template_folder='./web/templates',
@@ -393,16 +396,17 @@ def start_web(mode):
         lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
                    'Status', 'Master', 'Mirror')
         if mode == 'rt':
-            refresh_time = _get_TimeNow()
+            refresh_time = _get_TimeNow_Human()
             Status = get_HAAP_status_list()
             print(Status)
         elif mode == 'db':
             tuplHAAP = get_engine_from_db()
+            print(tuplHAAP)
             if tuplHAAP:
                 refresh_time = tuplHAAP[0]
-                Status = tuplHAAP[0]
+                Status = tuplHAAP[1]
             else:
-                refresh_time = _get_TimeNow()
+                refresh_time = _get_TimeNow_Folder_Human()
                 Status = None
 
         return render_template("monitor.html",
@@ -515,7 +519,7 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            strBackupFolder = '{}/{}'.format(strCFGFolder, _get_TimeNow())
+            strBackupFolder = '{}/{}'.format(strCFGFolder, _get_TimeNow_Folder())
             for i in lstHAAP:
                 _get_HAAPInstance()[i].backup(strBackupFolder)
 
@@ -526,11 +530,12 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow())
+            strTraceFolder = '{}/{}'.format(strTCFolder, _get_TimeNow_Folder())
             # for i in lstHAAP:
             #     _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
             for i in range(len(lstHAAP)):
                 _HAAP(lstHAAP[i]).get_trace(strTraceFolder, intTLevel)
+            print('\nAll Trace Store in the Folder "%s"' % strTraceFolder)
 
     elif sys.argv[1] == 'anls':
         if len(sys.argv) != 2:
@@ -538,7 +543,7 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow())
+            strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow_Folder())
             for i in lstHAAP:
                 _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
             _TraceAnalyse(strTraceFolder)
@@ -612,9 +617,7 @@ def main():
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
             for i in lstHAAP:
-                engine = _HAAP(i)
-                engine.set_engine_time()
-                print("\n" + engine.get_engine_time())
+                _HAAP(i).set_time()
 
     elif sys.argv[1] == 'wrt':
         start_web('rt')

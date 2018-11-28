@@ -292,22 +292,22 @@ class HAAP():
         lstCommand = list(oddCommand.values())
         lstDescribe = list(oddCommand.keys())
 
-        s.GotoFolder(strBaseFolder)
-        for i in range(len(lstDescribe)):
-            try:
-                if _get_trace_file(lstCommand[i], lstDescribe[i]):
-                    continue
-                else:
+        if s.GotoFolder(strBaseFolder):
+            for i in range(len(lstDescribe)):
+                try:
+                    if _get_trace_file(lstCommand[i], lstDescribe[i]):
+                        continue
+                    else:
+                        break
+                except Exception as E:
+                    # s.ShowErr(self.__class__.__name__,
+                    #           sys._getframe().f_code.co_name,
+                    #           'Get Trace "{}" Failed for Engine "{}",\
+                    # Error:'.format(
+                    #               lstDescribe[i], self._host),
+                    #           E)
                     break
-            except Exception as E:
-                # s.ShowErr(self.__class__.__name__,
-                #           sys._getframe().f_code.co_name,
-                #           'Get Trace "{}" Failed for Engine "{}",\
-                # Error:'.format(
-                #               lstDescribe[i], self._host),
-                #           E)
-                break
-            time.sleep(0.1)
+                time.sleep(0.1)
 
     @deco_OutFromFolder
     def periodic_check(self, lstCommand, strResultFolder, strResultFile):
@@ -376,9 +376,17 @@ class HAAP():
             t = s.TimeNow()
             
             def complete_print(strDesc):
-                print('\tSet  %-13s for Engine "%s" Completely...\
+                print('    Set  %-13s for Engine "%s" Completely...\
                         ' % ('"%s"' % strDesc, self._host))
                 time.sleep(0.25)
+
+            def get_DoW(intDay):
+                '''Day of the Week'''
+                if intDay <= 5:
+                    return intDay + 2
+                else:
+                    return intDay - 5
+
 
             try:
                 # Set Time
@@ -390,7 +398,7 @@ class HAAP():
                             t.y() - 2000, t.mo(), t.d())):
                         complete_print('Date')
                         # Set Day of the Week
-                        if self._TN_Conn.exctCMD('rtc set day %d' % t.wd()):
+                        if self._TN_Conn.exctCMD('rtc set day %d' % get_DoW(t.wd())):
                             complete_print('Day_of_Week')
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
