@@ -113,7 +113,7 @@ for i in objCFG.items('Engines'):
 lstHAAPAlias = list(oddEngines.keys())
 lstHAAP = list(oddEngines.values())
 #lstHAAP = list(i[0] for i in objCFG.items('Engines'))
-intTLevel = int(objCFG.get('TraceSetting', 'TraceLevel'))
+intTLevel = int(objCFG.get('MessageLogging', 'TraceLevel'))
 intTNPort = int(objCFG.get('EngineSetting', 'TelnetPort'))
 intFTPPort = int(objCFG.get('EngineSetting', 'FTPPort'))
 lstCheckCMD = list(i[0] for i in objCFG.items('PeriodicCheckCommand'))

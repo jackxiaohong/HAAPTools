@@ -7,13 +7,25 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 import re
 import xlwt
 
-# read from conf.ini level = 1
-error_level = 1
+try:
+    import configparser as cp
+except Exception:
+    import ConfigParser as cp
+
+objCFG = cp.ConfigParser(allow_no_value=True)
+objCFG.read('Conf.ini')
+
+error_level = int(objCFG.get('MessageLogging', 'msgLevel'))
+
 
 # def ShowErr_level3(_class, _func, _Msg, _Error=''):
 #     pass
 
 def ShowErr(*argvs):
+    '''
+    Four argv:
+    ClassName, FunctionName, MessageGiven, MessageRaised
+    '''
     if len(argvs) == 3:
         argvs[3] = ''
 

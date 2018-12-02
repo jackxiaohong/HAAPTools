@@ -380,14 +380,6 @@ class HAAP():
                         ' % ('"%s"' % strDesc, self._host))
                 time.sleep(0.25)
 
-            def get_DoW(intDay):
-                '''Day of the Week'''
-                if intDay <= 5:
-                    return intDay + 2
-                else:
-                    return intDay - 5
-
-
             try:
                 # Set Time
                 if self._TN_Conn.exctCMD('rtc set time %d %d %d' % (
@@ -398,7 +390,10 @@ class HAAP():
                             t.y() - 2000, t.mo(), t.d())):
                         complete_print('Date')
                         # Set Day of the Week
-                        if self._TN_Conn.exctCMD('rtc set day %d' % get_DoW(t.wd())):
+                        DoW = t.wd() + 2
+                        if DoW == 8:
+                            DoW - 7
+                        if self._TN_Conn.exctCMD('rtc set day %d' % DoW):
                             complete_print('Day_of_Week')
             except Exception as E:
                 s.ShowErr(self.__class__.__name__,
