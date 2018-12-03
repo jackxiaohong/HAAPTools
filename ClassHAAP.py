@@ -413,7 +413,8 @@ class HAAP():
         print('Time of Engine "%s":' % self._host)
         if self._TN_Conn:
             try:
-                print(self._TN_Conn.exctCMD('rtc'))
+                print(self._TN_Conn.exctCMD('rtc').replace(
+                    '\nCLI>', '').replace('rtc\r\n', ''))
             except:
                 print('Get Time of Engine "%s" Failed' % self._host)
 

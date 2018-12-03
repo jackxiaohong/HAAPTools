@@ -620,7 +620,7 @@ def main():
 
     elif sys.argv[1] == 'stm':
         for i in lstHAAP:
-            _HAAP(i).get_engine_time()
+            _HAAP(i).show_engine_time()
 
     elif sys.argv[1] == 'wrt':
         start_web('rt')
@@ -639,6 +639,4 @@ def main():
 
 
 if __name__ == '__main__':
-
     main()
-    pass
