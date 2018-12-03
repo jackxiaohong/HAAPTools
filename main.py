@@ -375,7 +375,7 @@ def get_engine_from_db():
     db = DB_collHAAP()
     # def get_last_status():
     last_update = db.get_last_record()
-    print('Last record @ %s' % last_update[0])
+    # print('Last record @ %s' % last_update[0])
     refresh_time = last_update[0]
     lstStatusDict = last_update[1]
     lstStatus = []
@@ -399,10 +399,10 @@ def start_web(mode):
             dictEngines = get_HAAP_status_list()
             for i in range(len(lstHAAPAlias)):
                 Status.append(dictEngines[i][lstHAAPAlias[i]])
-            print(Status)
+            # print(Status)
         elif mode == 'db':
             tuplHAAP = get_engine_from_db()
-            print(tuplHAAP)
+            # print(tuplHAAP)
             if tuplHAAP:
                 refresh_time = tuplHAAP[0]
                 Status = tuplHAAP[1]
@@ -422,7 +422,7 @@ def job_update_interval(intInterval):
     def do_it():
         n = datetime.datetime.now()
         do_update = db.haap_insert(n, get_HAAP_status_list())
-        print('update complately...@ %s' % n)
+        #print('update complately...@ %s' % n)
         return do_update
 
     t.add_interval(do_it, intInterval)
@@ -440,7 +440,18 @@ def job_update_interval(intInterval):
 #     t.add_interval(job_update_interval, intSec)
 #     t.stt()
 
-def thrd_web_db_db():
+def stopping_web(intSec):
+    try:
+        print('\nStopping Web Server ', end='')
+        for i in range(intSec):
+            time.sleep(1)
+            print('.', end='')
+        time.sleep(1)
+        print('\n\nWeb Server Stopped.')
+    except KeyboardInterrupt:
+        print('\n\nWeb Server Stopped.')
+
+def thrd_web_db():
 
     t1 = Thread(target= start_web, args=('db',))
     t2 = Thread(target=job_update_interval, args=(10,))
@@ -455,7 +466,19 @@ def thrd_web_db_db():
         while t1.isAlive():
             pass
     except KeyboardInterrupt:
-        print('stopped by keyboard')
+        stopping_web(3)
+
+def thrd_web_rt():
+    t1 = Thread(target= start_web, args=('rt',))
+    t1.setDaemon(True)
+    t1.start()
+    try:
+        while t1.isAlive():
+            pass
+    except KeyboardInterrupt:
+        stopping_web(3)
+
+
 
 # ################################################
 # <<<Inside Function Field>>>
@@ -623,7 +646,7 @@ def main():
             _HAAP(i).show_engine_time()
 
     elif sys.argv[1] == 'wrt':
-        start_web('rt')
+        thrd_web_rt()
 
     elif sys.argv[1] == 'wdb':
         thrd_web_db()

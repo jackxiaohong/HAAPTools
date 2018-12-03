@@ -4,6 +4,7 @@ import sys
 import time
 from mongoengine import *
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 import re
 import xlwt
 
@@ -76,7 +77,8 @@ class Timing(object):
         self.scdl = BlockingScheduler()
 
     def add_interval(self, job, intSec):
-        self.scdl.add_job(job, 'interval', seconds=intSec, max_instances=6)
+        trigger = IntervalTrigger(seconds=intSec)
+        self.scdl.add_job(job, trigger)
 
     def add_once(self, job, rdate):
         try:
