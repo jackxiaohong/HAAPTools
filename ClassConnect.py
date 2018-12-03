@@ -319,40 +319,6 @@ class HAAPConn(object):
     connection = property(_get_connection, doc="Get HAAPConn instance's connection")
 
 if __name__ == '__main__':
-    aa = HAAPConn('172.16.254.71', 23, '.com')
-    print(aa._Connection)
-    # print(aa.exctCMD('conmgr status'))
-    # print(1)
-    # time.sleep(3)
-    # print(aa.exctCMD('conmgr status'))
-    # print(2)
-    # time.sleep(3)
-    # print(aa.exctCMD('conmgr status'))
-    # print(3)
-    # time.sleep(3)
-    # print(aa.exctCMD('conmgr status'))
-    # print(4)
-
-    # lstCommand = ['vpd', 'conmgr status', 'mirror', 'explore b1']
-
-    # for i in range(len(lstCommand)):
-    #     result = aa.exctCMD(lstCommand[i])
-    #     if result:
-    #         print result
-    #         i += 1
-    #     time.sleep(0.25)
-
-    # bb = SSHConn('172.16.254.75', 22, 'admin', 'passwor', 2)
-    # x = bb.exctCMD('switchshow')
-    # if x:
-    #     print(x)
-    # print(bb.exctCMD('pwd'))
-
-    # cc = HAAPConn('127.0.0.7', 22, '.com', 5)
-    # cc.exctCMD('abc')
-
-    # dd = FTPConn('127.0.0.7', 10021, 'matthew', '.com', 2)
-    # if dd.GetFile('.', '.', 'wp.txt', 'bbb'):
-    #     print('download wp.txt complate, store as bbb...')
+    
     pass
 

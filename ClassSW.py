@@ -181,32 +181,4 @@ class SANSW(object):
 
 
 if __name__ == '__main__':
-    lstPort = [2, 3, 4, 5]
-    sw1 = SANSW('172.16.254.77', 22, 'admin', 'password', lstPort)
-    # pprint.pprint(sw1._dicPartPortError)
-    # print(sw1.get_encout_total())
-    # print(sw1.get_discC3_total())
-    # print(sw1.get_discC3_by_port(3))
-    # # print(sw1.get_encout_by_port(20))
-    # # print(sw1.get_linkfail_by_port(4))
-    # # sw1.clear_porterr_by_port(3)
-    # # print(sw1.get_encout_by_port(2))
-    # sw1._dicPartPortError = None
-    # print(sw1.get_discC3_by_port(3))
-    print(sw1.show_porterrors())
-
-    # print(sw1.get_encout_by_port(3))
-    # lstSW = ['172.16.254.75', '172.16.254.76']
-
-    # lstSWinstance = []
-    # oddSWObject = OrderedDict()
-    # for i in lstSW:
-    #     locals()['SW' + str(i)] = SANSW(i, 22, 'admin', 'password', lstPort)
-    #     lstSWinstance.append(locals()['SW' + str(i)])
-    #     # print(str('SW' + str(i)))
-    #     oddSWObject[str('SW' + str(i))] = locals()['SW' +
-    #                                                str(i)]._dicPartPortError
-
-    # pprint.pprint(oddSWObject)
-
-    # print(dir(SANSW))
+    pass

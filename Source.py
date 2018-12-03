@@ -90,15 +90,6 @@ class Timing(object):
     def stp(self):
         self.scdl.shutdown()
 
-def ttt():
-    t = Timing()
-    
-    def job_update_interval():
-        print('update complately...')
-    
-    t.add_interval(job_update_interval, 2)
-    t.stt()
-
 
 class TimeNow(object):
     def __init__(self):
@@ -203,11 +194,6 @@ def TraceAnalyse(oddHAAPErrorDict, strTraceFolder):
 
 
 if __name__ == '__main__':
-    # a = store_in_MongoDB('HDB')
-    # cn = {'2':'3'}
-    # a.coll_insert('aa', cn)
-
-    #ttt()
-    print('www')
+    pass
 
 

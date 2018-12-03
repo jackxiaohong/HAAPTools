@@ -14,7 +14,8 @@ def deco_OutFromFolder(func):
         try:
             return func(self, *args, **kwargs)
         except Exception as E:
-            print(func.__name__, E)
+            # print(func.__name__, E)
+            pass
         finally:
             os.chdir(strOriFolder)
     return _deco
@@ -408,30 +409,15 @@ class HAAP():
         else:
             print('\nSetting Time for Engine %s Failed...' % self._host)
 
-    def get_engine_time(self):
+    def show_engine_time(self):
+        print('Time of Engine "%s":' % self._host)
         if self._TN_Conn:
-            return self._TN_Conn.exctCMD('rtc')
-        else:
-            self._telnet_connect()
-            return self._TN_Conn.exctCMD('rtc')
+            try:
+                print(self._TN_Conn.exctCMD('rtc'))
+            except:
+                print('Get Time of Engine "%s" Failed' % self._host)
 
 
 if __name__ == '__main__':
-    aa = HAAP('10.203.1.111', 23, '', 21)
-#     print(aa.get_vpd())
-#     print(aa.get_uptime('list'))
-#     a = HAAP('10.203.1.111', 23, '', 21)
-    print aa.get_engine_health()
-#     print a.get_engine_status()
-#     print a.get_engine_health()
-#     print a.get_uptime(command="human")
-#     print a.is_master_engine()
-#     print a.get_mirror_info()
-#     print a.get_mirror_status()
-#     print a.get_version()
-#     print a.infoEngine_lst()
 
-    # w = ClassConnect.FTPConn('172.16.254.71', 21, 'adminftp', '.com')
-
-    # print(w.getwelcome())
     pass

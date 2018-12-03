@@ -31,18 +31,19 @@ strHelp = '''
         ptclALL        : Clear Port Error Counter for All Ports on All Defined SAN switches
         sws            : Print switchshow Info for Given SAN Switch
         swsALL         : Print switchshow Info for All Defined SAN Switches
-        gt             : Get Trace of All Defined Engine, Save in {trace} Folder
-        anls           : Analyse Trace of All Defined Engine
+        gt             : Get Trace of All Defined Engine(s), Save in {trace} Folder
+        anls           : Analyse Trace of All Defined Engine(s)
         anlsTrace      : Analyze Trace Files under <Folder>
-        bkCFG          : Backup Config for All Defined Engines, Save in {cfg} Folder
+        bkCFG          : Backup Config for All Defined Engine(s), Save in {cfg} Folder
         ec             : Execute Commands listed in <File> on Given Engine
         pc             : Execute Periodic Check on Given Engine, Save in {pc} Folder
-        pcALL          : Execute Periodic Check on All Defined Engine, Save in {pc} Folder
+        pcALL          : Execute Periodic Check on All Defined Engine(s), Save in {pc} Folder
         chgFW          : Change Firmware for Given Engine
         sts            : Show Overall Status for All Engines
         st             : Sync Time with Local System For All Engines
+        stm            : Get Time of All Defined Engine(s)
         wrt            : Start Web Update Real Time
-        wdb            : Start Web Update from DataBase       
+        wdb            : Start Web Update from DataBase
         '''
 
 strPTCLHelp = '''
@@ -154,10 +155,6 @@ def _get_TimeNow_Human():
 
 def _get_TimeNow_Folder():
     return datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    # t = s.TimeNow()
-    # return '%s-%s-%s-%s-%s-%s' % (t.y(), t.mo(), t.d(),
-    #                               t.h(), t.mi(), t.s())
-
 
 # en-Instance The HAAP by IP...
 def _HAAP(strEngineIP):
@@ -427,34 +424,24 @@ def job_update_interval(intInterval):
         do_update = db.haap_insert(n, get_HAAP_status_list())
         print('update complately...@ %s' % n)
         return do_update
-    # while True:
-    #     do_it()
-    #     time.sleep(intInterval)
 
     t.add_interval(do_it, intInterval)
     t.stt()
 
 
-def DB_Update_interval(intSec):
-    t = s.Timing()
-    db = DB_collHAAP()
-    def job_update_interval():
-        do_update = db.haap_insert(get_HAAP_status_list())
-        print('update complately...@ %s' % datetime.datetime.now())
-        return do_update
+# def DB_Update_interval(intSec):
+#     t = s.Timing()
+#     db = DB_collHAAP()
+#     def job_update_interval():
+#         do_update = db.haap_insert(get_HAAP_status_list())
+#         print('update complately...@ %s' % datetime.datetime.now())
+#         return do_update
 
-    t.add_interval(job_update_interval, intSec)
-    t.stt()
+#     t.add_interval(job_update_interval, intSec)
+#     t.stt()
 
-def thrd_web():
-    # t = Thread()
-    # Thread(target= start_web, args='db').start()
-    # Thread(target= job_update_interval, args=(10,)).start()
-    # try:
-    #     while Thread().isAlive():
-    #         pass
-    # except KeyboardInterrupt:
-    #     print('stopped by keyboard')
+def thrd_web_db_db():
+
     t1 = Thread(target= start_web, args=('db',))
     t2 = Thread(target=job_update_interval, args=(10,))
     
@@ -469,10 +456,6 @@ def thrd_web():
             pass
     except KeyboardInterrupt:
         print('stopped by keyboard')
-
-
-    #print('xxx')
-    # app.run(debug=True, host='0.0.0.0', port=5000)
 
 # ################################################
 # <<<Inside Function Field>>>
@@ -635,73 +618,27 @@ def main():
             for i in lstHAAP:
                 _HAAP(i).set_time()
 
+    elif sys.argv[1] == 'stm':
+        for i in lstHAAP:
+            _HAAP(i).get_engine_time()
+
     elif sys.argv[1] == 'wrt':
         start_web('rt')
 
     elif sys.argv[1] == 'wdb':
-        thrd_web()
+        thrd_web_db()
 
     elif sys.argv[1] == 'test':
 
         #timing_clct_to_db(15)
-        show_N_record(3)
+        # show_N_record(3)
+        pass
 
     else:
         print(strHelp)
 
 
 if __name__ == '__main__':
-    # start_web('rt')
 
-
-    #job_update_interval(3)
     main()
-    #print(get_HAAP_status_list())
-    #DB_Update_interval(10)
-    # a = DB_collHAAP()
-    # a.insert([1,2,3])
-    # print(a.list_all())
-    # lstSTS = [1, 2, 3]
-    # b = collHAAP(engine_status=lstSTS)
-    # b.save
-
-    # t = collHAAP(engine_status = [79,38])
-    # t.save()
-    # m = DB_collHAAP()
-    # m.get_last_record()
-    # m.haap_insert(['2dse4', '3saff'])
-    # m.haap_list_all()
-    # print(collHAAP.objects().all())
-    # haap_insert([2323, 2323])
-
-    #print(type(get_HAAP_status_list()))
-    
-
-    #db = DB_collHAAP()
-    
-    #db.haap_insert(get_HAAP_status_list())
-    # last_update = db.get_last_record()
-    # print(last_update[1])
-
-    #job_update_interval(3)
-    # db = DB_collHAAP()
-
-    # db.haap_list_all()
-    # db.show_N_record(3)
-
-    #last_update = db.get_last_record()
-    #print(last_update)
-    #print(last_update[0])
-    # lstStatusDict = last_update[1]
-    # lstStatus = []
-    # for i in range(len(lstHAAPAlias)):
-    #     print(lstStatusDict[i][lstHAAPAlias[i]])
-    #     lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
-    # print(lstStatus)
-    #schd_web()
-    #thrd_web()
-    #job_update_interval(3)
-    #thrd_web()
-    
-    #schd_web()
     pass
