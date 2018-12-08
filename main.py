@@ -4,7 +4,7 @@ import ClassSW as sw
 import ClassHAAP as haap
 import Source as s
 from collections import OrderedDict as Odd
-from apscheduler.schedulers.blocking import BlockingScheduler
+# from apscheduler.schedulers.blocking import BlockingScheduler
 import os
 import sys
 import datetime
@@ -13,9 +13,9 @@ import getpass
 import re
 from mongoengine import *
 from threading import Thread
-import thread
+# import thread
 
-from flask import Flask, render_template, redirect, request
+from flask import Flask, render_template, redirect  # , request
 
 try:
     import configparser as cp
@@ -153,10 +153,13 @@ strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 def _get_TimeNow_Human():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+
 def _get_TimeNow_Folder():
     return datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
 # en-Instance The HAAP by IP...
+
+
 def _HAAP(strEngineIP):
     return haap.HAAP(strEngineIP, intTNPort, strHAAPPasswd, intFTPPort)
 
@@ -257,14 +260,14 @@ def _ShowEngineInfo():
         lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
                    'Status', 'Master', 'Mirror')
         for strDesc in lstDesc:
-            print(strDesc.center(14), end = ''),
+            print(strDesc.center(14), end=''),
         print()
         for i in info_lst:
             for s in i:
                 if s is not None:
-                    print(s.center(14), end = ''),
+                    print(s.center(14), end=''),
                 else:
-                    print("None".center(14), end = ''),
+                    print("None".center(14), end=''),
             print()
 
     def mirror_info():  # needs optimization
@@ -309,6 +312,7 @@ def _isPort(s):
                 return True
     return False
 
+
 def get_HAAP_status_list():
     lstHAAPstatus = []
     for i in range(len(lstHAAP)):
@@ -349,10 +353,10 @@ class DB_collHAAP(object):
                     lstRecord[x].append(N_record[x].engine_status[i][k])
         return lstRecord
 
-    def show_N_record(self,intN):
+    def show_N_record(self, intN):
         r = self.get_N_record_in_list(intN)
         tuplDesc = ('Engine', 'Uptime', 'AH', 'FirmWare',
-                   'Status', 'Master', 'Mirror')
+                    'Status', 'Master', 'Mirror')
         tuplWidth = (18, 16, 7, 13, 9, 9, 12)
         for i in r:
             print('\n Time: %s\n' % str(i[0]))
@@ -380,10 +384,11 @@ def get_engine_from_db():
     lstStatusDict = last_update[1]
     lstStatus = []
     for i in range(len(lstHAAPAlias)):
-        #print(lstStatusDict[i][lstHAAPAlias[i]])
+        # print(lstStatusDict[i][lstHAAPAlias[i]])
         lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
         # print(lstStatus)
-    return refresh_time,lstStatus
+    return refresh_time, lstStatus
+
 
 def start_web(mode):
     app = Flask(__name__, template_folder='./web/templates',
@@ -414,11 +419,13 @@ def start_web(mode):
                                Title=lstDesc,
                                refresh_time=refresh_time,
                                Status=Status)
-    app.run(debug=False, use_reloader = False, host='0.0.0.0', port=5000)
+    app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
+
 
 def job_update_interval(intInterval):
     t = s.Timing()
     db = DB_collHAAP()
+
     def do_it():
         n = datetime.datetime.now()
         do_update = db.haap_insert(n, get_HAAP_status_list())
@@ -451,11 +458,12 @@ def stopping_web(intSec):
     except KeyboardInterrupt:
         print('\n\nWeb Server Stopped.')
 
+
 def thrd_web_db():
 
-    t1 = Thread(target= start_web, args=('db',))
+    t1 = Thread(target=start_web, args=('db',))
     t2 = Thread(target=job_update_interval, args=(10,))
-    
+
     t1.setDaemon(True)
     t2.setDaemon(True)
     t1.start()
@@ -468,8 +476,9 @@ def thrd_web_db():
     except KeyboardInterrupt:
         stopping_web(3)
 
+
 def thrd_web_rt():
-    t1 = Thread(target= start_web, args=('rt',))
+    t1 = Thread(target=start_web, args=('rt',))
     t1.setDaemon(True)
     t1.start()
     try:
@@ -477,7 +486,6 @@ def thrd_web_rt():
             pass
     except KeyboardInterrupt:
         stopping_web(3)
-
 
 
 # ################################################
@@ -541,7 +549,8 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            strBackupFolder = '{}/{}'.format(strCFGFolder, _get_TimeNow_Folder())
+            strBackupFolder = '{}/{}'.format(strCFGFolder,
+                                             _get_TimeNow_Folder())
             for i in lstHAAP:
                 _get_HAAPInstance()[i].backup(strBackupFolder)
 
@@ -565,7 +574,8 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow_Folder())
+            strTraceFolder = '{}/{}'.format(strTCAFolder,
+                                            _get_TimeNow_Folder())
             for i in lstHAAP:
                 _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
             _TraceAnalyse(strTraceFolder)
@@ -653,7 +663,7 @@ def main():
 
     elif sys.argv[1] == 'test':
 
-        #timing_clct_to_db(15)
+        # timing_clct_to_db(15)
         # show_N_record(3)
         pass
 
