@@ -1,0 +1,224 @@
+vpd
+
+
+****** Storage Mirroring Engine VPD ******
+
+Product Type : FCE8400G
+               Loxoll
+
+Firmware V15.9.7.9	HA-AP Evaluation Build # 001
+Revision Data : Horatio Lo(HORATIO-WINX), Aug 15 2018 17:57:13
+(C) 1995-2015 Loxoll, Inc. All Rights Reserved.
+Redboot(tm) version: 0.2.0.6
+
+Unique ID          : 00000060-22AD0AB4
+Unit Serial Number : 11340468
+PCB Number         : 11340468
+MAC address        : 0.60.22.AD.A.B4
+IP addresses       : 10.203.1.111/20.20.20.1
+
+Uptime             : 00:13:25
+
+Alert: None
+Saturday, 1/19/2019, 15:41:55
+
+Port  Node Name           Port Name
+A1    2000-006022-ad0ab4  2100-006022-ad0ab4
+A2    2000-006022-ad0ab4  2200-006022-ad0ab4
+B1    2000-006022-ad0ab4  2300-006022-ad0ab4
+B2    2000-006022-ad0ab4  2400-006022-ad0ab4
+
+CLI>conmgr status
+
+  0 Drives
+==========
+
+  0 Engines
+===========
+
+  0 Initiators
+==============
+
+CLI>mirror
+
+No mirrors defined
+
+CLI>group
+
+No HBA Groups defined
+No Drive Groups defined
+
+CLI>map
+
+Auto-application of Map 0 to all HBAs is disabled
+
+No LUN Maps defined
+
+CLI>drvstate
+
+
+Resource drives:
+    Target #        Capacity (LBA)  I/O cnt  State
+    --------        --------------  -------  -----
+        2044            1073741824        0  Operational
+        2045            1073741824        0  Operational
+        2046            1073741824        0  Operational
+        2047            1073741824        0  Operational
+
+Complex drives:
+    None defined
+
+
+CLI>history
+
+
+Oldest error first
+
+	Alert Halt(0) (Warm Reboot):
+		Tuesday, 12/25/2018, 15:10:59
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 12/26/2018, 13:38:03
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 12/26/2018, 13:40:35
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 12/26/2018, 13:50:47
+
+	Alert Halt(0) (Warm Reboot):
+		Thursday, 12/27/2018, 14:37:50
+
+	Alert Halt(0) (Warm Reboot):
+		Saturday, 1/5/2019, 09:59:47
+
+	Alert Halt(0) (Warm Reboot):
+		Tuesday, 1/8/2019, 16:48:09
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:47:19
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:49:29
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:50:34
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:51:19
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:52:21
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:54:04
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:55:22
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:55:46
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 13:56:38
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 14:03:06
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 14:05:09
+
+	Alert Halt(0) (Warm Reboot):
+		Wednesday, 1/9/2019, 14:07:26
+
+	Alert Halt(8):
+		Friday, 1/11/2019, 13:38:59
+		Filtered stack dump:
+			0x00435b3c
+			0x00200140
+			0x00405500
+			0x00435cc4
+			0x0040a170
+			0x002de1bc
+			0x0025c2c4
+			0x0040a0e8
+			0x0025c0f8
+			0x0025c2a4
+			0x002029b8
+			0x002db2a8
+			0x0025a4d8
+			0x0025bf80
+			0x002128ac
+			0x0025a394
+			0x002029b8
+			0x002db2a8
+
+	Alert Halt(8):
+		Friday, 1/11/2019, 13:40:01
+		Filtered stack dump:
+			0x00435b3c
+			0x00200140
+			0x00405500
+			0x00435cc4
+			0x0040a170
+			0x002de1bc
+			0x0025c2c4
+			0x0040a0e8
+			0x0025c0f8
+			0x0025c2a4
+			0x002029b8
+			0x002db2a8
+			0x0025a4d8
+			0x0025bf80
+			0x002128ac
+			0x0025a394
+			0x002029b8
+			0x002db2a8
+
+	Alert Halt(0) (Warm Reboot):
+		Saturday, 1/12/2019, 16:25:54
+
+	Alert Halt(0) (Warm Reboot):
+		Saturday, 1/12/2019, 16:36:06
+
+
+CLI>sfp all
+
+Port A1 SFP information:
+  Identifier         : SFP transceiver
+  Connector          : LC
+  Nominal Bit Rate   : 8500 Mb/s
+  Vendor Name        : FINISAR CORP.   
+  Part Number        : FTLF8528P2BNV-EM
+  Revision Level     : A   
+  Serial Number      : PH33YP8         
+  Date of Manufacture: 01/14 2010
+Port A2 SFP information:
+  Identifier         : SFP transceiver
+  Connector          : LC
+  Nominal Bit Rate   : 8500 Mb/s
+  Vendor Name        : FINISAR CORP.   
+  Part Number        : FTLF8528P2BNV-EM
+  Revision Level     : A   
+  Serial Number      : PG30YLT         
+  Date of Manufacture: 07/14 2009
+Port B1 SFP information:
+  Identifier         : SFP transceiver
+  Connector          : LC
+  Nominal Bit Rate   : 8500 Mb/s
+  Vendor Name        : BROCADE         
+  Part Number        : 57-1000117-01   
+  Revision Level     : A   
+  Serial Number      : UAF413180000RG8 
+  Date of Manufacture: 05/03 2013
+Port B2 SFP information:
+  Identifier         : SFP transceiver
+  Connector          : LC
+  Nominal Bit Rate   : 8500 Mb/s
+  Vendor Name        : FINISAR CORP.   
+  Part Number        : FTLF8528P2BNV-EM
+  Revision Level     : A   
+  Serial Number      : PDL3FXB         
+  Date of Manufacture: 05/20 2008
+
+CLI>
