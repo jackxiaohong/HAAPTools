@@ -1,10 +1,12 @@
 # coding:utf-8
+
+# change line 48,219,622
 from __future__ import print_function
 import ClassSW as sw
 import ClassHAAP as haap
 import Source as s
 from collections import OrderedDict as Odd
-# from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 import os
 import sys
 import datetime
@@ -13,9 +15,16 @@ import getpass
 import re
 from mongoengine import *
 from threading import Thread
-# import thread
+import thread
 
-from flask import Flask, render_template, redirect  # , request
+signal = 0
+import ClassSend_Email
+
+if signal == 1:
+    t = ClassSend_Email.SEmail
+    t.send_email()
+
+from flask import Flask, render_template, redirect, request
 
 try:
     import configparser as cp
@@ -37,6 +46,7 @@ strHelp = '''
         bkCFG          : Backup Config for All Defined Engine(s), Save in {cfg} Folder
         ec             : Execute Commands listed in <File> on Given Engine
         pc             : Execute Periodic Check on Given Engine, Save in {pc} Folder
+        pcsw           : Execute Periodic Check on Given Switch, Save in {pc} Folder
         pcALL          : Execute Periodic Check on All Defined Engine(s), Save in {pc} Folder
         chgFW          : Change Firmware for Given Engine
         sts            : Show Overall Status for All Engines
@@ -44,6 +54,8 @@ strHelp = '''
         stm            : Get Time of All Defined Engine(s)
         wrt            : Start Web Update Real Time
         wdb            : Start Web Update from DataBase
+        sancheck       : san check
+
         '''
 
 strPTCLHelp = '''
@@ -60,6 +72,10 @@ strAutoCLIHelp = '''
 
 strPCHelp = '''
     pc <Engine_IP>
+'''
+
+strPCSWHelp = '''
+    pcsw <Switch_IP>
 '''
 
 strHelpAnalyseTrace = '''
@@ -94,8 +110,19 @@ intSWSSHPort = int(objCFG.get('SWSetting', 'port'))
 oddSWPort = Odd()
 for i in objCFG.items('SWPorts'):
     oddSWPort[i[0]] = eval(i[1])
+    # print(oddSWPort)
+print(oddSWPort)
+for i in oddSWPort.items():
+    print(type(i))
+
 lstSW = list(oddSWPort.keys())
 lstSWPorts = list(oddSWPort.values())
+# print(oddSWPort)
+
+# if i == '172.16.254.75':
+# print (oddSWPort.values())
+# print (lstSWPorts,lstSW,)
+
 
 strSWPWD = objCFG.get('SWSetting', 'password')
 if strSWPWD:
@@ -113,11 +140,12 @@ for i in objCFG.items('Engines'):
     oddEngines[i[0]] = i[1]
 lstHAAPAlias = list(oddEngines.keys())
 lstHAAP = list(oddEngines.values())
-#lstHAAP = list(i[0] for i in objCFG.items('Engines'))
+# lstHAAP = list(i[0] for i in objCFG.items('Engines'))
 intTLevel = int(objCFG.get('MessageLogging', 'TraceLevel'))
 intTNPort = int(objCFG.get('EngineSetting', 'TelnetPort'))
 intFTPPort = int(objCFG.get('EngineSetting', 'FTPPort'))
 lstCheckCMD = list(i[0] for i in objCFG.items('PeriodicCheckCommand'))
+# lstSWCheckCMD = list(i[0] for i in objCFG.items('PeriodicSWCheckCommand'))
 
 strHAAPPasswd = objCFG.get('EngineSetting', 'HAAPPassword')
 if strHAAPPasswd:
@@ -143,6 +171,8 @@ strTCAFolder = objCFG.get('FolderSetting', 'traceanalyse')
 strCFGFolder = objCFG.get('FolderSetting', 'cfgbackup')
 # PCFolder = HAAP Periodic Check Result Folder
 strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
+
+
 # <<<Folder Config>>>
 # <<<Read Config File Field>>>
 
@@ -157,9 +187,8 @@ def _get_TimeNow_Human():
 def _get_TimeNow_Folder():
     return datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 
+
 # en-Instance The HAAP by IP...
-
-
 def _HAAP(strEngineIP):
     return haap.HAAP(strEngineIP, intTNPort, strHAAPPasswd, intFTPPort)
 
@@ -178,9 +207,12 @@ def _get_SWInstance():
                                        strSWUser, strSWPWD, lstSWPorts[i])
     return oddSWInst
 
+    # print ('aaaaaa:'),oddSWInst
+
 
 def _sw_switchshow(strSWIP):
     _SW(strSWIP, [])._switchshow()
+
 
 # en-Instance ALL The HAAPs in the config file by IP...
 
@@ -189,13 +221,16 @@ def _get_HAAPInstance():
     oddTNInst = Odd()
     for i in range(len(lstHAAP)):
         oddTNInst[lstHAAP[i]] = _HAAP(lstHAAP[i])
+        # print('aaaaaa:'), lstHAAP
     return oddTNInst
+
 
 # analyze trace files under DesFolder, results saved in .xsl files
 
 
 def _TraceAnalyse(strDesFolder):
     s.TraceAnalyse(oddHAAPErrorDict, strDesFolder)
+
 
 # execute periodic-check commands (defined in Config.ini),\
 # print and save results in PCFolder
@@ -206,6 +241,29 @@ def _periodic_check(strEngineIP):
                                       strPCFolder,
                                       'PC_{}_{}.log'.format(
                                           _get_TimeNow_Folder(), strEngineIP))
+
+
+def _periodic_sw_check(strSWIP, ports):
+    # lstSWport = 0
+    cmd = 'portshow '
+    lstSWCheckCMD = ['switchshow', 'porterrorshow']
+    # lstSWCheckCMD.insert('aaa1')
+    for i in ports:
+        i = str(i)
+        print(i, type(i))
+        cmd += i
+        print(cmd)
+        lstSWCheckCMD.insert(-1, cmd)
+        cmd = 'portshow '
+    print(lstSWCheckCMD)
+    _SW(strSWIP, lstSWPorts).periodic_sw_check(lstSWCheckCMD,
+                                               strPCFolder,
+                                               'PC_{}_{}.log'.format(
+                                                   _get_TimeNow_Folder(), strSWIP))
+
+
+def _has_abts_qfull(strEngineIP,SANstatus):
+    _HAAP(strEngineIP).has_abts_qfull(SANstatus,strEngineIP)
 
 
 # execute cmds in file and print the results
@@ -225,6 +283,7 @@ def _EngineHealth(strEngineIP):
         else:
             al_st = "OK"
         print("{}: {}".format(strEngineIP, al_st))
+
 
 # def _ShowEngineInfo(strEngineIP):
 #     engineIns = _HAAP(strEngineIP)
@@ -279,6 +338,7 @@ def _ShowEngineInfo():
                 print(mirror_status)
             else:
                 print("None")
+
     general_info()
     mirror_info()
 
@@ -371,7 +431,7 @@ class DB_collHAAP(object):
 
     def get_last_record(self):
         last_record = collHAAP.objects().order_by('-time').first()
-        return(last_record.time, last_record.engine_status)
+        return (last_record.time, last_record.engine_status)
 
 
 def get_engine_from_db():
@@ -419,6 +479,7 @@ def start_web(mode):
                                Title=lstDesc,
                                refresh_time=refresh_time,
                                Status=Status)
+
     app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
 
 
@@ -429,7 +490,7 @@ def job_update_interval(intInterval):
     def do_it():
         n = datetime.datetime.now()
         do_update = db.haap_insert(n, get_HAAP_status_list())
-        #print('update complately...@ %s' % n)
+        # print('update complately...@ %s' % n)
         return do_update
 
     t.add_interval(do_it, intInterval)
@@ -460,7 +521,6 @@ def stopping_web(intSec):
 
 
 def thrd_web_db():
-
     t1 = Thread(target=start_web, args=('db',))
     t2 = Thread(target=job_update_interval, args=(10,))
 
@@ -493,8 +553,11 @@ def thrd_web_rt():
 
 
 def main():
+    # _get_SWInstance()
+    # _get_HAAPInstance()
     if len(sys.argv) == 1:
         print(strHelp)
+        # print ('aaaaaa',len(sys.argv))
 
     elif sys.argv[1] == 'ptes':
         if len(sys.argv) != 2:
@@ -549,8 +612,7 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            strBackupFolder = '{}/{}'.format(strCFGFolder,
-                                             _get_TimeNow_Folder())
+            strBackupFolder = '{}/{}'.format(strCFGFolder, _get_TimeNow_Folder())
             for i in lstHAAP:
                 _get_HAAPInstance()[i].backup(strBackupFolder)
 
@@ -574,8 +636,7 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            strTraceFolder = '{}/{}'.format(strTCAFolder,
-                                            _get_TimeNow_Folder())
+            strTraceFolder = '{}/{}'.format(strTCAFolder, _get_TimeNow_Folder())
             for i in lstHAAP:
                 _get_HAAPInstance()[i].get_trace(strTraceFolder, intTLevel)
             _TraceAnalyse(strTraceFolder)
@@ -606,6 +667,19 @@ def main():
         else:
             _periodic_check(sys.argv[2])
 
+    elif sys.argv[1] == 'pcsw':
+        if len(sys.argv) != 3:
+            print(strPCSWHelp)
+        elif not _isIP(sys.argv[2]):
+            print('IP Format Wrong. Please Provide Correct Switch IP...')
+        else:
+            ports = []
+            for i in oddSWPort.items():
+                if sys.argv[2] == i[0]:
+                    ports = i[1]
+            # print(ports)
+            _periodic_sw_check(sys.argv[2], ports)
+
     elif sys.argv[1] == 'pcALL':
         if len(sys.argv) != 2:
             print(strHelpSingleCommand.format('pcALL'))
@@ -625,14 +699,14 @@ def main():
         else:
             _FWUpdate(sys.argv[2], sys.argv[3])
 
-#     elif sys.argv[1] == 'healthHAAP':
-#         if len(sys.argv) != 2:
-#             print(strHelpSingleCommand.format('healthHAAP'))
-#         elif not _checkIPlst(lstHAAP):
-#             print('IP error. Please check Engine IPs defined in Conf.ini')
-#         else:
-#             for i in lstHAAP:
-#                 _EngineHealth(i)
+    #     elif sys.argv[1] == 'healthHAAP':
+    #         if len(sys.argv) != 2:
+    #             print(strHelpSingleCommand.format('healthHAAP'))
+    #         elif not _checkIPlst(lstHAAP):
+    #             print('IP error. Please check Engine IPs defined in Conf.ini')
+    #         else:
+    #             for i in lstHAAP:
+    #                 _EngineHealth(i)
 
     elif sys.argv[1] == 'sts':
         if len(sys.argv) != 2:
@@ -667,6 +741,15 @@ def main():
         # show_N_record(3)
         pass
 
+    elif sys.argv[1] == 'sancheck':
+        if len(sys.argv) != 2:
+            print(strHelpSingleCommand.format('sancheck'))
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini')
+        else:
+            SAN_status={}
+            for i in lstHAAP:
+                _has_abts_qfull(i,SAN_status)
     else:
         print(strHelp)
 

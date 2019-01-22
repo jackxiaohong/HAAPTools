@@ -7,6 +7,7 @@ import time
 import Source as s
 
 
+# change line:55,123,402,410,420
 def deco_OutFromFolder(func):
     strOriFolder = os.getcwd()
 
@@ -18,6 +19,7 @@ def deco_OutFromFolder(func):
             pass
         finally:
             os.chdir(strOriFolder)
+
     return _deco
 
 
@@ -27,6 +29,7 @@ def deco_Exception(func):
             return func(self, *args, **kwargs)
         except Exception as E:
             print(func.__name__, E)
+
     return _deco
 
 
@@ -49,6 +52,35 @@ class HAAP():
                                               self._password,
                                               self._timeout)
 
+    #
+    def get_engine_AH(self):
+        if self._TN_Conn:
+            strvpd = self._TN_Conn.exctCMD('vpd')
+        else:
+            self._telnet_connect()
+            strvpd = self._TN_Conn.exctCMD('vpd')
+        if strvpd is None:
+            print("Get vpd Failed for Engine {}".format(self._host))
+        else:
+
+            strvpd = self._TN_Conn.exctCMD('vpd')
+            listvpd = strvpd.split('\r')
+            # print 'lklkl', listvpd
+            for i in listvpd:
+                if 'Alert' in i:
+                    # print i
+                    if i == '\nAlert: None':
+                        return 0
+                        print 'There has no AH in this engine'
+                    else:
+                        return i[7:] + 'egAH'
+                        print "There has some AH in this engine", i
+        # if 'Alert: None\r' in listvpd:
+        #     print 'There has no AH in this engine'
+        #     #pass
+        # else:
+        #     print "There has some AH in this engine"
+
     def _FTP_connect(self):
         self._FTP_Conn = ClassConnect.FTPConn(self._host,
                                               self._FTPport,
@@ -65,36 +97,67 @@ class HAAP():
             if self._TN_Conn:
                 return self._TN_Conn.exctCMD('vpd')
 
-    def get_engine_status(self):
-        if self._TN_Conn:
-            strEngine = self._TN_Conn.exctCMD('engine')
-        else:
-            self._telnet_connect()
-            strEngine = self._TN_Conn.exctCMD('engine')
-        if strEngine is None:
-            print "Get Online Status Failed for Engine {}".format(self._host)
-        else:
-            reCLI = re.compile(r'>>\s*\d*\s*(\(M\))*\s*Online')
-            if reCLI.search(strEngine):
-                return "ONLINE"
-            else:
-                return "offline"
+    #
+    # def get_engine_status(self):
+    #     if self._TN_Conn:
+    #         strEngine = self._TN_Conn.exctCMD('engine')
+    #     else:
+    #         self._telnet_connect()
+    #         strEngine = self._TN_Conn.exctCMD('engine')
+    #     if strEngine is None:
+    #         print "Get Online Status Failed for Engine {}".format(self._host)
+    #     else:
+    #         reCLI = re.compile(r'>>\s*\d*\s*(\(M\))*\s*Online')
+    #         if reCLI.search(strEngine):
+    #             return "ONLINE"
+    #         else:
+    #             return "offline"
+    #
+    #
+    # def get_engine_health(self):
+    #     if self.get_engine_status() == "ONLINE":
+    #         if self._TN_Conn:
+    #             strEnter = self._TN_Conn.exctCMD('')
+    #         else:
+    #             self._telnet_connect()
+    #             strEnter = self._TN_Conn.exctCMD('')
+    #         if strEnter is None:
+    #             print("Get Health Status Failed for Engine {}".format(self._host))
+    #         else:
+    #             reAL = re.compile('AH_CLI')
+    #             if reAL.search(strEnter):
+    #                 return 'AH_CLI'  # 1 means engine is not healthy (AH)
+    #             else:
+    #                 return 0  # 0 means engine is healthy
 
     def get_engine_health(self):
-        if self.get_engine_status() == "ONLINE":
-            if self._TN_Conn:
-                strEnter = self._TN_Conn.exctCMD('')
+        # if self.get_engine_status() == "ONLINE":
+        if self._TN_Conn:
+            strEnter = self._TN_Conn.exctCMD('')
+        else:
+            self._telnet_connect()
+            strEnter = self._TN_Conn.exctCMD('')
+        if strEnter is None:
+            print("Get Health Status Failed for Engine {}".format(self._host))
+        else:
+            reAL = re.compile('AH_CLI')
+            if reAL.search(strEnter):
+                return 'AH_CLI'  # 1 means engine is not healthy (AH)
             else:
-                self._telnet_connect()
-                strEnter = self._TN_Conn.exctCMD('')
-            if strEnter is None:
-                print("Get Health Status Failed for Engine {}".format(self._host))
-            else:
-                reAL = re.compile('AH_CLI')
-                if reAL.search(strEnter):
-                    return 1  # 1 means engine is not healthy (AH)
+                # return 0  # 0 means engine is healthy
+                if self._TN_Conn:
+                    strEngine = self._TN_Conn.exctCMD('engine')
                 else:
-                    return 0  # 0 means engine is healthy
+                    self._telnet_connect()
+                    strEngine = self._TN_Conn.exctCMD('engine')
+                if strEngine is None:
+                    print "Get Online Status Failed for Engine {}".format(self._host)
+                else:
+                    reCLI = re.compile(r'>>\s*\d*\s*(\(M\))*\s*Online')
+                    if reCLI.search(strEngine):
+                        return "ONLINE"
+                    else:
+                        return "offline"
 
     def get_uptime(self, command="human", strVPD_Info=None):
         if strVPD_Info is None:
@@ -327,15 +390,16 @@ class HAAP():
                             strCMD)
                         # print(strErr)
                         f.write(strErr)
-#         else:
-#             strMsg = '''
-# ********************************************************************
-# Error Message:
-#     Connet Failed
-#     Please Check Connection of Engine "{}" ...
-# ********************************************************************'''.format(self._host)
-#                 print(strMsg)
-#                 f.write(strMsg)
+
+    #         else:
+    #             strMsg = '''
+    # ********************************************************************
+    # Error Message:
+    #     Connet Failed
+    #     Please Check Connection of Engine "{}" ...
+    # ********************************************************************'''.format(self._host)
+    #                 print(strMsg)
+    #                 f.write(strMsg)
 
     def infoEngine_lst(self):
         # return: [IP, uptime, AH, FW version, status, master, mirror status]
@@ -343,17 +407,18 @@ class HAAP():
 
         ip = self._host
         uptime = self.get_uptime(strVPD_Info=strVPD)
-        ah = self.get_engine_health()
-        if ah == 1:
-            ah = "AH"
-        elif ah == 0:
+        ah = self.get_engine_AH()
+        if ah == 0:
             ah = "None"
+        elif ah != 0:
+            ah = str(ah)
 
         version = self.get_version(strVPD_Info=strVPD)
         if version is not None:
             version = version[9:]
 
-        status = self.get_engine_status()
+        # status = self.get_engine_status()
+        status = self.get_engine_health()
         master = self.is_master_engine()
         if master is not None:
             if master:
@@ -371,11 +436,10 @@ class HAAP():
                 mr_st = "NOT ok"
         return [ip, uptime, ah, version, status, master, mr_st]
 
-
     def set_time(self):
         def _exct_cmd():
             t = s.TimeNow()
-            
+
             def complete_print(strDesc):
                 print('    Set  %-13s for Engine "%s" Completely...\
                         ' % ('"%s"' % strDesc, self._host))
@@ -419,6 +483,58 @@ class HAAP():
                 print('Get Time of Engine "%s" Failed' % self._host)
 
 
-if __name__ == '__main__':
+    def has_abts_qfull(self,SAN_status,ip):
+        ports=['a1','a2','b1','b2']
+        #for ip in ips:
+        SAN_status.update({ip: [{'ABTS': '0', 'Qfull': '0', 'Mirror': '0', 'EgReboot': '0'}]})
+        #print(SAN_status)
+        abts = []
+        qf = []
+        for port in ports:
 
+            print port
+            portcmd='aborts_and_q_full '
+            portcmd+=port
+            if self._TN_Conn:
+                strabts_qf = self._TN_Conn.exctCMD(portcmd)
+            else:
+                self._telnet_connect()
+                if self._TN_Conn:
+                    strabts_qf = self._TN_Conn.exctCMD(portcmd)
+            listabts_qf = strabts_qf.split('\r')
+            #print 'asasasasasasa',listabts_qf[8][13]
+            abts.append(listabts_qf[2][7])
+            qf.append(listabts_qf[8][13])
+        print( abts, qf)
+        #print (SAN_status[ip])
+        for i in abts:
+            if i != '0' :
+                SAN_status[ip][0]['ABTS']= i
+                break
+        for i in qf:
+            if i != '0' :
+                SAN_status[ip][0]['Qfull'] = i
+                break
+        print(SAN_status)
+        # if listabts_qf[2][7] != 0 :
+        #     SAN_status['ABTS']=1
+        # if listabts_qf[8][13] != 0:
+        #     SAN_status['Qfull'] = 1
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        # pass
+
+
+
+
+
+
+
+if __name__ == '__main__':
+    #HAAP('10.203.1.111','23','21','password').has_abts_qfull()
     pass

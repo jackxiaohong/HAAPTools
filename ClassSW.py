@@ -3,6 +3,23 @@ from ClassConnect import *
 from collections import OrderedDict
 import re
 import Source as s
+import os
+import time
+
+
+
+def deco_OutFromFolder(func):
+    strOriFolder = os.getcwd()
+
+    def _deco(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except Exception as E:
+            # print(func.__name__, E)
+            pass
+        finally:
+            os.chdir(strOriFolder)
+    return _deco
 
 
 def deco_Exception(func):
@@ -70,6 +87,7 @@ class SANSW(object):
                 lstErrInfo = _getErrorAsList(intPortNum, lstPortErrLines)
                 oddPortError[intPortNum] = lstErrInfo
             self._dicPartPortError = oddPortError
+            #print 'aaaaa',oddPortError
 
         if self._strAllPortError:
             _putToDict()
@@ -178,6 +196,26 @@ class SANSW(object):
         if self._dicPartPortError:
             print('\nThe Ports Errors of SAN Switch {} ...'.format(self._host))
             _show_porterrors()
+
+    @deco_OutFromFolder
+    def periodic_sw_check(self, lstSWCommand, strResultFolder, strResultFile):
+        tn = self._SWConn
+        print('111')
+        s.GotoFolder(strResultFolder)
+        print('222')
+        #if tn.exctCMD('\n'):
+        with open(strResultFile, 'w') as f:
+            for strCMD in lstSWCommand:
+                time.sleep(0.25)
+                strResult = tn.exctCMD(strCMD)
+                if strResult:
+                    print(strResult)
+                    f.write(strResult)
+                else:
+                    strErr = '\n*** Execute Command "{}" Failed\n'.format(
+                        strCMD)
+                    # print(strErr)
+                    f.write(strErr)
 
 
 if __name__ == '__main__':
