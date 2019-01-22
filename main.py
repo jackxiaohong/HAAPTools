@@ -21,7 +21,8 @@ try:
     import configparser as cp
 except Exception:
     import ConfigParser as cp
-
+from flask import Flask, render_template, request, json, make_response
+app = Flask(__name__)
 # <<<Help String Feild>>>
 strHelp = '''
         Command           Description
@@ -149,6 +150,10 @@ strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 # <<<Inside Function Feild>>>
 # ################################################
 
+# <<<refreshtime Config>>>
+flashfreshtime = objCFG.get('Refreshtime', 'flashfreshtime')
+databasefreshtime = objCFG.get('Refreshtime', 'databasefreshtime')
+databasefresh = int(databasefreshtime)
 
 def _get_TimeNow_Human():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -327,11 +332,20 @@ class collHAAP(Document):
     engine_status = ListField()
 
 
+
+class haapinfo(Document):
+    time = DateTimeField(default=datetime.datetime.now())
+    enginesd = ListField()
+
 class DB_collHAAP(object):
     connect(strDBName, host=strDBServer, port=intDBPort)
 
     def haap_insert(self, time_now, lstSTS):
         t = collHAAP(time=time_now, engine_status=lstSTS)
+        t.save()
+
+    def haap_insert1(self, time_now, lstS):
+        t = haapinfo(time=time_now, enginesd=lstS)
         t.save()
 
     def haap_query(self, time_start, time_end):
@@ -389,6 +403,12 @@ def get_engine_from_db():
         # print(lstStatus)
     return refresh_time, lstStatus
 
+#
+# DB = DB_collHAAP()
+# DBp = DB.get_last_record
+# flashfreshtime = DBp
+# flashfreshtime = objCFG.get('Refreshtime', 'flashfreshtime')
+
 
 def start_web(mode):
     app = Flask(__name__, template_folder='./web/templates',
@@ -402,26 +422,38 @@ def start_web(mode):
             refresh_time = _get_TimeNow_Human()
             Status = []
             dictEngines = get_HAAP_status_list()
+
             for i in range(len(lstHAAPAlias)):
                 Status.append(dictEngines[i][lstHAAPAlias[i]])
             # print(Status)
         elif mode == 'db':
             tuplHAAP = get_engine_from_db()
-            # print(tuplHAAP)
+            #print(tuplHAAP)
             if tuplHAAP:
                 refresh_time = tuplHAAP[0]
                 Status = tuplHAAP[1]
             else:
                 refresh_time = _get_TimeNow_Human()
                 Status = None
-
         return render_template("monitor.html",
                                Title=lstDesc,
                                refresh_time=refresh_time,
-                               Status=Status)
+                               Status=Status,flashfreshtimea=flashfreshtime)
     app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
 
 
+#
+#
+# def home():
+#     app = Flask(__name__, template_folder='./web/templates',
+#                 static_folder='./web/static', static_url_path='')
+#
+#     @app.route("/")
+#     context = {'flashfreshtime' = flashfreshtime}
+#     return render_template("monitor.html", **context
+#                            )
+
+get_HAAP1 = ['afddfsfff']
 def job_update_interval(intInterval):
     t = s.Timing()
     db = DB_collHAAP()
@@ -429,8 +461,9 @@ def job_update_interval(intInterval):
     def do_it():
         n = datetime.datetime.now()
         do_update = db.haap_insert(n, get_HAAP_status_list())
+        do_engineinfo = db.haap_insert1(n, get_HAAP1, )
         #print('update complately...@ %s' % n)
-        return do_update
+        return do_update,do_engineinfo
 
     t.add_interval(do_it, intInterval)
     t.stt()
@@ -462,7 +495,7 @@ def stopping_web(intSec):
 def thrd_web_db():
 
     t1 = Thread(target=start_web, args=('db',))
-    t2 = Thread(target=job_update_interval, args=(10,))
+    t2 = Thread(target=job_update_interval, args=(int(databasefreshtime),))
 
     t1.setDaemon(True)
     t2.setDaemon(True)
