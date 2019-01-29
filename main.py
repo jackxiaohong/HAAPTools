@@ -14,7 +14,6 @@ from mongoengine import *
 from threading import Thread
 import thread
 
-
 from flask import Flask, render_template, redirect, request
 
 try:
@@ -101,7 +100,6 @@ lstSW = list(oddSWPort.keys())
 print (lstSW)
 lstSWPorts = list(oddSWPort.values())
 print (lstSWPorts)
-
 
 strSWPWD = objCFG.get('SWSetting', 'password')
 if strSWPWD:
@@ -334,9 +332,8 @@ def get_HAAP_status_list():
         t = {}
         t[lstHAAPAlias[i]] = _HAAP(lstHAAP[i]).infoEngine_lst()
         lstHAAPstatus.append(t)
-        #print ("#####################:", lstHAAPstatus)
+        # print ("#####################:", lstHAAPstatus)
     return lstHAAPstatus
-
 
 # Switch数据获取方法
 '''def get_Switch_status_list():
@@ -349,35 +346,104 @@ def get_HAAP_status_list():
         #print("444444444444:",_dicPartPortError)
         print ("###222222222222222########:", lstSwitchstatus)
     return lstSwitchstatus'''
+
+
 def get_Switch_status_list():
-    lstSwitchstatus = []
+    lstSwitchstatus = {}
+    ENCOUT = []
+    DICT3 = []
     for i in range(len(lstSW)): 
-        a = {} 
+        encout = 0
+        dict3 = 0
+        a = {}
+        c = {} 
+        d = {}
         for h in range(len(lstSWPorts[i])):
-            #print("h:",lstSWPorts[i][h])
-            
-            q=lstSWPorts[i][h]
-            print ('aaaa',q)
-            b = _SW(lstSW[i],lstSWPorts[i])._dicPartPortError[q]
-            print("212313213312:",b)
-           
-            a['port'+str(lstSWPorts[i][h])] = b
-        a['IP']=lstSW[i]
-        lstSwitchstatus.append(a)
-     
-        #lstSwitchAlias = OrderedDict()
+            print("h:", lstSWPorts[i][h]) 
+            q = lstSWPorts[i][h]
+            # print ('aaaa',q)
+            b = _SW(lstSW[i], lstSWPorts[i])._dicPartPortError[q]
+            # print('dasdssdfsdfsdf',b[2][:-1])
+            if b[2][-1] == 'm' or b[2][-1] == 'k':
+                if b[2][-1] == 'm':
+                    b[2] = (float(b[2][0:-1])) * 10000
+                else:
+                    b[2] = (float(b[2][0:-1])) * 1000
+            encout += int(b[2])
+
+            if b[3][-1] == 'm' or b[3][-1] == 'k':
+                if b[3][-1] == 'm':
+                    b[3] = (float(b[3][0:-1])) * 10000
+                else:
+                    b[3] = (float(b[3][0:-1])) * 1000
+            dict3 += int(b[3]) 
+            # lstSwitchstatus.update(ENCOUT = encout)
+            # lstSwitchstatus.update(Discc3 = dict3)
+
+            a['port' + str(lstSWPorts[i][h])] = b
+        # a.update(Encout = encout)
+        # a.update(Discc3 = dict3)
+
+        # a['Encout']=encout
+        # a['Discc3']=dict3
+        a['IP'] = lstSW[i]
+
+        s = str(lstSW[i]) + ':' + ' '
+        s += str(encout)
+        s2 = str(lstSW[i]) + ':' + ' '
+        s2 += str(dict3)
+        ENCOUT.append(s)
+        DICT3.append(s2)
+
+        lstSwitchstatus[str(i)] = (a)
+        lstSwitchstatus.update(ENCOUT=ENCOUT)
+        lstSwitchstatus.update(DISCC3=DICT3)
     print ("###222222222222222########:", lstSwitchstatus)
 
     return lstSwitchstatus
+
+
+# <<get SW Warning>>
+def get_SwW():
+    pass
+
+#######################################
+'''def get_Switch_count_list():
+    lstSwitchcount = []
+
+    for i in range(len(lstSW)): 
+        encout=0
+        c = {} 
+        for h in range(len(lstSWPorts[i])):
+            q=lstSWPorts[i][h]
+            b = _SW(lstSW[i],lstSWPorts[i])._dicPartPortError[q]
+            #print('dasdssdfsdfsdf',b[2][:-1])
+            if b[2][-1] == 'm' or b[2][-1] == 'k':
+                if b[2][-1] == 'm':
+                    b[2] =(float( b[2][0:-1] ))*10000
+                else:
+                    b[2] =(float( b[2][0:-1] ))*1000
+                #print ('dfdsfdgfdghhhhhhhh',b[2])
+            encout += int(b[2])
+            c[str(lstSW[i])] = encout
+            print("dddddadsdasdsad",c)
+            #print("212313213312:",b[2])
+        c['IPnow']=lstSW[i]
+        lstSwitchcount[int(i)]=(c)
+    print ("###222222222222222########:", lstSwitchcount)
+
+    return lstSwitchcount'''
 
 
 class collHAAP(Document):
     time = DateTimeField(default=datetime.datetime.now())
     engine_status = ListField()
 
+
 class collSWITCH(Document):
     time = DateTimeField(default=datetime.datetime.now())
-    Switch_status = ListField()
+    Switch_status = DictField()
+
 
 #引用参数连接数据库+++++++++++++++++++++++++++++++++++++++++++++
 # 方法
@@ -485,7 +551,10 @@ def start_web(mode):
 
     app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
 
+
 Switch_status_list = "wwwwww"
+
+
 # 更新传入数据
 def job_update_interval(intInterval):
     t = s.Timing()
@@ -495,12 +564,12 @@ def job_update_interval(intInterval):
         n = datetime.datetime.now()
         do_update = db.haap_insert(n, get_HAAP_status_list())
         do_update_Switch = db.Switch_insert(n, get_Switch_status_list())
-        return do_update,do_update_Switch
+        return do_update, do_update_Switch
 
     t.add_interval(do_it, intInterval)
     t.stt()
      
- #更新交换机数据
+ # 更新交换机数据
 '''def job_update_interval_Switch(intInterval_Switch):
     t = s.Timing()
     db = DB_collHAAP()
@@ -545,12 +614,8 @@ def thrd_web_db():
     t1 = Thread(target=start_web, args=('db',))
     t2 = Thread(target=job_update_interval, args=(10,))
     
-
-    
     t1.setDaemon(True)
     t2.setDaemon(True)
-    
-
 
     t1.start()
     t2.start()
@@ -757,10 +822,10 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[1]))
-    #print (type(_SW('172.16.254.75',[1,2,3])._dicPartPortError))
-    #print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[2]))
-    #print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[3]))
-    #main()
-    #SANSW('172.16.254.75', 22, 'admin', 'passwod', [1,2,3])
-    #job_update_interval(5)
+    # print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[1]))
+    # print (type(_SW('172.16.254.75',[1,2,3])._dicPartPortError))
+    # print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[2]))
+    # print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[3]))
+    # main()
+    # SANSW('172.16.254.75', 22, 'admin', 'passwod', [1,2,3])
+    # job_update_interval(5)
