@@ -6,6 +6,23 @@ import sys
 import time
 import Source as s
 
+try:
+    import configparser as cp
+except Exception:
+    import ConfigParser as cp
+
+# <<<Read Config File Field>>>
+objCFG = cp.ConfigParser(allow_no_value=True)
+objCFG.read('Conf.ini')
+
+
+# <<<HAAP Fault>>>
+faults=objCFG.get('EngineFault','Faults')
+faults=eval(faults)
+#print(type(faults))
+#for i in faults:
+    #print(i)
+
 
 # change line:55,123,402,410,420
 def deco_OutFromFolder(func):
@@ -141,7 +158,7 @@ class HAAP():
             print("Get Health Status Failed for Engine {}".format(self._host))
         else:
             reAL = re.compile('AH_CLI')
-            if reAL.search(strEnter):
+            if reAL.search(strEnter) :
                 return 'AH_CLI'  # 1 means engine is not healthy (AH)
             else:
                 # return 0  # 0 means engine is healthy
@@ -406,6 +423,7 @@ class HAAP():
         strVPD = self.get_vpd()
 
         ip = self._host
+
         uptime = self.get_uptime(strVPD_Info=strVPD)
         ah = self.get_engine_AH()
         if ah == 0:
@@ -434,7 +452,10 @@ class HAAP():
         else:
             if mr_st is not None:
                 mr_st = "NOT ok"
-        return [ip, uptime, ah, version, status, master, mr_st]
+
+        abts = str(self.get_abts())
+        qf = str(self.get_qf())
+        return [ip, uptime, ah, version, status, master, mr_st, abts, qf]
 
     def set_time(self):
         def _exct_cmd():
@@ -484,12 +505,13 @@ class HAAP():
 
 
     def has_abts_qfull(self,SAN_status,ip):
+        strVPD = self.get_vpd()
         ports=['a1','a2','b1','b2']
         #for ip in ips:
-        SAN_status.update({ip: [{'ABTS': '0', 'Qfull': '0', 'Mirror': '0', 'EgReboot': '0'}]})
+        SAN_status[0].update({ip: {'ABTS': '0', 'Qfull': '0', 'Mirror': '0', 'EgReboot': '0'}})
         #print(SAN_status)
-        abts = []
-        qf = []
+        abts = 0
+        qf = 0
         for port in ports:
 
             print port
@@ -501,20 +523,33 @@ class HAAP():
                 self._telnet_connect()
                 if self._TN_Conn:
                     strabts_qf = self._TN_Conn.exctCMD(portcmd)
-            listabts_qf = strabts_qf.split('\r')
-            #print 'asasasasasasa',listabts_qf[8][13]
-            abts.append(listabts_qf[2][7])
-            qf.append(listabts_qf[8][13])
+                    print(strabts_qf)
+            if strabts_qf:
+                listabts_qf = strabts_qf.split('\r')
+                #print 'asasasasasasa',listabts_qf[8][13]
+                abts += int(listabts_qf[2][7])
+                qf += int(listabts_qf[8][13])
+            else:
+                print('default to get abts and qfull')
         print( abts, qf)
         #print (SAN_status[ip])
-        for i in abts:
-            if i != '0' :
-                SAN_status[ip][0]['ABTS']= i
-                break
-        for i in qf:
-            if i != '0' :
-                SAN_status[ip][0]['Qfull'] = i
-                break
+        # for i in abts:
+        #     if i != '0' :
+        #         SAN_status[0][ip]['ABTS']= i
+        #         break
+        # for i in qf:
+        #     if i != '0' :
+        #         SAN_status[0][ip]['Qfull'] = i
+        #         break
+        uptime = self.get_uptime(strVPD_Info=strVPD)
+        if uptime:
+            print(uptime,uptime[0],uptime[-2])
+            a=uptime.split(':')
+            if a[0] == '00' and int(a[-2]) < 30:
+                SAN_status[0][ip]['EgReboot'] = '1'
+
+
+
         print(SAN_status)
         # if listabts_qf[2][7] != 0 :
         #     SAN_status['ABTS']=1
@@ -528,7 +563,71 @@ class HAAP():
         #
         #
         # pass
+    def get_abts(self):
 
+        ports=['a1','a2','b1','b2']
+
+        abts = 0
+        qf = 0
+        for port in ports:
+
+            #print port
+            portcmd='aborts_and_q_full '
+            portcmd+=port
+            if self._TN_Conn:
+                strabts_qf = self._TN_Conn.exctCMD(portcmd)
+            else:
+                self._telnet_connect()
+                if self._TN_Conn:
+                    strabts_qf = self._TN_Conn.exctCMD(portcmd)
+                    print(strabts_qf)
+            if strabts_qf:
+                listabts_qf = strabts_qf.split('\r')
+                abts += int(listabts_qf[2][7])
+            else:
+                print('default to get abts ')
+        #print( abts, qf)
+        return abts
+
+    def get_qf(self):
+
+        ports = ['a1', 'a2', 'b1', 'b2']
+
+        abts = 0
+        qf = 0
+        for port in ports:
+
+            #print port
+            portcmd = 'aborts_and_q_full '
+            portcmd += port
+            if self._TN_Conn:
+                strabts_qf = self._TN_Conn.exctCMD(portcmd)
+            else:
+                self._telnet_connect()
+                if self._TN_Conn:
+                    strabts_qf = self._TN_Conn.exctCMD(portcmd)
+                    print(strabts_qf)
+            if strabts_qf:
+                listabts_qf = strabts_qf.split('\r')
+                qf += int(listabts_qf[8][13])
+            else:
+                print('default to get qfull')
+        return qf
+
+
+    def get_egw(self):
+        abts=self.get_abts()
+        qf=self.get_qf()
+        mirror=self.get_mirror_status()
+        ut=self.get_uptime()
+        if ut:
+            #print(uptime,uptime[0],uptime[-2])
+            a=ut.split(':')
+            if a[0] == '00' and int(a[-2]) < 30:
+                ut = 1
+            else:
+                ut = 0
+        return {'ABTs':abts,'Qfull':qf,'Mirror':mirror,'Reboot':ut}
 
 
 

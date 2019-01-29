@@ -111,9 +111,9 @@ oddSWPort = Odd()
 for i in objCFG.items('SWPorts'):
     oddSWPort[i[0]] = eval(i[1])
     # print(oddSWPort)
-print(oddSWPort)
-for i in oddSWPort.items():
-    print(type(i))
+#print(oddSWPort)
+#for i in oddSWPort.items():
+    #print(type(i))
 
 lstSW = list(oddSWPort.keys())
 lstSWPorts = list(oddSWPort.values())
@@ -266,6 +266,10 @@ def _has_abts_qfull(strEngineIP,SANstatus):
     _HAAP(strEngineIP).has_abts_qfull(SANstatus,strEngineIP)
 
 
+def _SWstatus(strSWIP,SANstatus):
+    _SW(strSWIP, lstSWPorts).SWstatus(strSWIP,SANstatus)
+
+
 # execute cmds in file and print the results
 def _AutoCLI(strEngineIP, CMDFile):
     _HAAP(strEngineIP).execute_multi_command(CMDFile)
@@ -317,7 +321,7 @@ def _ShowEngineInfo():
 
     def general_info():
         lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
-                   'Status', 'Master', 'Mirror')
+                   'Status', 'Master', 'Mirror','ABTs','Qfull')
         for strDesc in lstDesc:
             print(strDesc.center(14), end=''),
         print()
@@ -374,6 +378,7 @@ def _isPort(s):
 
 
 def get_HAAP_status_list():
+
     lstHAAPstatus = []
     for i in range(len(lstHAAP)):
         t = {}
@@ -548,11 +553,43 @@ def thrd_web_rt():
         stopping_web(3)
 
 
+
+
+
+
+#<<<Warning Collection>>>
+
+def get_wc():
+    lstwarnstatus = []
+    #<<get engine warning status>>
+    for i in range(len(lstHAAP)):
+        s = 'Engine'
+        s += lstHAAP[i]
+        t = {}
+        t[s] = _HAAP(lstHAAP[i]).get_egw()#engine warning status
+        for items in t.values():
+            for k,v in items.items():#for key,value in dict
+                if v == 0:
+                    items.pop(k)
+        lstwarnstatus.append(t)
+
+        #print(lstwarnstatus)
+
+    #pass
+
+def wc_tdb():
+    pass
+
+
+
+
+
 # ################################################
 # <<<Inside Function Field>>>
 
 
 def main():
+    get_wc()
     # _get_SWInstance()
     # _get_HAAPInstance()
     if len(sys.argv) == 1:
@@ -747,9 +784,12 @@ def main():
         elif not _checkIPlst(lstHAAP):
             print('IP error. Please check Engine IPs defined in Conf.ini')
         else:
-            SAN_status={}
+            SAN_status=[{},{}]
+
             for i in lstHAAP:
                 _has_abts_qfull(i,SAN_status)
+            #for i in lstSW:
+                #_SWstatus(i,SAN_status)
     else:
         print(strHelp)
 
