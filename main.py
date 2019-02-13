@@ -1,6 +1,6 @@
 # coding:utf-8
 
-# change line 48,219,622
+# change line 48,219,622,182
 from __future__ import print_function
 import ClassSW as sw
 import ClassHAAP as haap
@@ -177,6 +177,31 @@ strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
 # <<<Read Config File Field>>>
 
 # <<<Inside Function Feild>>>
+
+
+#<<<warn level>>>
+level1 = objCFG.get('level','1')
+level1 = eval(level1)
+abtslv1 = level1['abts']
+qflv1 = level1['Q_full']
+eclv1 = level1['Encout']
+d3lv1 = level1['Discc3']
+
+level2 = objCFG.get('level','2')
+level2 = eval(level2)
+abtslv2 = level2['abts']
+qflv2 = level2['Q_full']
+eclv2 = level2['Encout']
+d3lv2 = level2['Discc3']
+
+level3 = objCFG.get('level','3')
+level3 = eval(level3)
+abtslv3 = level3['abts']
+qflv3 = level3['Q_full']
+eclv3 = level3['Encout']
+d3lv3 = level3['Discc3']
+#print(type(abtslv1))
+
 # ################################################
 
 
@@ -561,6 +586,10 @@ def thrd_web_rt():
 
 def get_wc():
     lstwarnstatus = []
+    eglevel = 0
+    aslv = 0
+    qlv = 0
+    lvlist=[]
     #<<get engine warning status>>
     for i in range(len(lstHAAP)):
         s = 'Engine'
@@ -571,7 +600,44 @@ def get_wc():
             for k,v in items.items():#for key,value in dict
                 if v == 0:
                     items.pop(k)
-        lstwarnstatus.append(t)
+        #print(t.values()[0])
+        if t.values() != [{}]:
+            a = t.values()[0]
+            print(a)
+            #print(type(a))
+            for k, v in a.items():
+                if k == 'Reboot':
+                    eglevel = 3
+                    lvlist.append(eglevel)
+                elif k == 'Mirror':
+                    eglevel =3
+                    lvlist.append(eglevel)
+                elif k == 'ABTs':
+                    if v > abtslv3: aslv = 3
+                    elif v > abtslv2: aslv = 2
+                    else : aslv =1
+                    lvlist.append(aslv)
+
+
+                else:
+                    if k == 'Qfull':
+                        if v > qflv3:
+                            qlv = 3
+                        elif v > qflv2:
+                            qlv = 2
+                        else:
+                            qlv = 1
+                        lvlist.append(qlv)
+
+
+
+
+
+
+            lstwarnstatus.append(t)
+        print(eglevel,lvlist)
+    eglevel = max(lvlist)
+    print(eglevel)
 
         #print(lstwarnstatus)
 
@@ -796,3 +862,14 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+#<<<level confirm>>>
+# if int(sw_level) > int(eg_level):
+#     level==int(sw_level)
+# else:
+#     level==int(eg_level)
