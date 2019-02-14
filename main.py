@@ -359,7 +359,7 @@ def get_Switch_status_list():
         c = {} 
         d = {}
         for h in range(len(lstSWPorts[i])):
-            print("h:", lstSWPorts[i][h]) 
+           # print("h:", lstSWPorts[i][h]) 
             q = lstSWPorts[i][h]
             # print ('aaaa',q)
             b = _SW(lstSW[i], lstSWPorts[i])._dicPartPortError[q]
@@ -377,15 +377,8 @@ def get_Switch_status_list():
                 else:
                     b[3] = (float(b[3][0:-1])) * 1000
             dict3 += int(b[3]) 
-            # lstSwitchstatus.update(ENCOUT = encout)
-            # lstSwitchstatus.update(Discc3 = dict3)
-
             a['port' + str(lstSWPorts[i][h])] = b
-        # a.update(Encout = encout)
-        # a.update(Discc3 = dict3)
-
-        # a['Encout']=encout
-        # a['Discc3']=dict3
+ 
         a['IP'] = lstSW[i]
 
         s = str(lstSW[i]) + ':' + ' '
@@ -398,14 +391,47 @@ def get_Switch_status_list():
         lstSwitchstatus[str(i)] = (a)
         lstSwitchstatus.update(ENCOUT=ENCOUT)
         lstSwitchstatus.update(DISCC3=DICT3)
-    print ("###222222222222222########:", lstSwitchstatus)
-
     return lstSwitchstatus
 
-
 # <<get SW Warning>>
+def get_Switch_warning():
+    for i in range(len(lstSW)): 
+        encoutw = 0
+        discc3w = 0
+        for h in range(len(lstSWPorts[i])):
+            #print("h:", lstSWPorts[i][h]) 
+            q = lstSWPorts[i][h]
+            # print ('aaaa',q)
+            b = _SW(lstSW[i], lstSWPorts[i])._dicPartPortError[q]
+            #print('nnnnnn',b,lstSW,lstSW[i])
+            # print('dasdssdfsdfsdf',b[2][:-1])
+            if b[2][-1] == 'm' or b[2][-1] == 'k':
+                if b[2][-1] == 'm':
+                    b[2] = (float(b[2][0:-1])) * 10000
+                else:
+                    b[2] = (float(b[2][0:-1])) * 1000
+            encoutw += int(b[2])
+
+            if b[3][-1] == 'm' or b[3][-1] == 'k':
+                if b[3][-1] == 'm':
+                    b[3] = (float(b[3][0:-1])) * 10000
+                else:
+                    b[3] = (float(b[3][0:-1])) * 1000
+            discc3w += int(b[3])
+        print('ghghgggggggghhhhhh',encoutw,discc3w)
+
+        
+    #return{'Encout':encoutw,'DisCC3':discc3w}
+
 def get_SwW():
-    pass
+    get_Switch_warning()
+    for i in range(len(lstSW)):
+
+        a=get_Switch_warning()
+        print('aaaaaaaaaaaaaaaaaaaaa',a)
+    #pass
+#print('2323232323232ssssss')
+#get_SwW()
 
 #######################################
 '''def get_Switch_count_list():
@@ -462,9 +488,19 @@ class DB_collHAAP(object):
         collHAAP.objects(date__gte=time_start,
                          date__lt=time_end).order_by('-date')
 
+##By Wen###                         
+    def haap_query(self, time_start, time_end):
+        collSWITCH.objects(date__gte=time_start,
+                         date__lt=time_end).order_by('-date')
+
     def haap_list_all(self):
         for i in collHAAP.objects().order_by('-time'):
             print(i.time, i.engine_status)
+
+###By Wen####
+    def haap_list_all(self):
+        for i in collSWITCH.objects().order_by('-time'):
+            print(i.time, i.Switch_status)
 
     def get_N_record_in_list(self, intN):
         N_record = collHAAP.objects().order_by('-time').limit(intN)
@@ -477,6 +513,18 @@ class DB_collHAAP(object):
                     lstRecord[x].append(N_record[x].engine_status[i][k])
         return lstRecord
 
+#####By Wen########
+    def get_N_record_in_list_SW(self, intN):
+        N_record = collSWITCH.objects().order_by('-time').limit(intN)
+        lstRecord = []
+        for x in range(len(N_record)):
+            lstRecord.append([])
+            lstRecord[x].append(N_record[x].time)
+            for i in range(len(N_record[x].Switch_status)):
+                for k in N_record[x].Switch_status[i].keys():
+                    lstRecord[x].append(N_record[x].Switch_status[i][k])
+        return lstRecord
+    
     def show_N_record(self, intN):
         r = self.get_N_record_in_list(intN)
         tuplDesc = ('Engine', 'Uptime', 'AH', 'FirmWare',
@@ -493,9 +541,31 @@ class DB_collHAAP(object):
                     print(p[x].ljust(tuplWidth[x]), end='')
                 print()
 
+ ###By Wen###               
+    def show_N_record_Sw(self, intN):
+        r = self.get_N_record_in_list_SW(intN)
+        tuplDesc = ('FramTX', 'FramRX', 'encout',
+                       'Discc3', 'LinkFL', 'LossSC', 'LossSG')
+        tuplWidth = (18, 16, 7, 13, 9, 9, 12)
+        for i in r:
+            print('\n Time: %s\n' % str(i[0]))
+            w = i[1:]
+            for d in range(len(tuplDesc)):
+                print(tuplDesc[d].ljust(tuplWidth[d]), end='')
+            print()
+            for p in w:
+                for x in range(len(p)):
+                    print(p[x].ljust(tuplWidth[x]), end='')
+                print()
+
     def get_last_record(self):
         last_record = collHAAP.objects().order_by('-time').first()
         return(last_record.time, last_record.engine_status)
+    
+#######By Wen#######
+    def get_last_record_Switch(self):
+        last_record = collSWITCH.objects().order_by('-time').first()
+        return(last_record.time, last_record.Switch_status)
 
 
 # +++++++++从数据库里面拿engine的信息++++++++++++++++
@@ -509,10 +579,51 @@ def get_engine_from_db():
     lstStatusDict = last_update[1]
     lstStatus = []
     for i in range(len(lstHAAPAlias)):
-        # print(lstStatusDict[i][lstHAAPAlias[i]])
+        #print(lstStatusDict[i][lstHAAPAlias[i]])
         lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
-        # print(lstStatus)
+        #print(lstStatus)
     return refresh_time, lstStatus
+
+
+#+++++++++++++++从Switch里面拿数据+++++++++++++++++++++++++
+def get_Switch_from_db():
+    # refresh_time = ['']
+    db = DB_collHAAP()
+    # def get_last_status():
+    last_update = db.get_last_record_Switch()
+    # print('Last record @ %s' % last_update[0])
+    refresh_time = last_update[0]
+    lstStatusDict = last_update[1]
+    lstStatus = []
+    lstportcount = []
+    lstIPTEST = []
+    #print("swwwww:",lstStatusDict)
+    
+    for i in lstStatusDict:
+        if i == "ENCOUT":
+            lstencout = lstStatusDict[i][:]
+            #print("xxxx:",lstencout)
+        elif i =="DISCC3":
+            lstdiscc3 = lstStatusDict[i][:]
+        else:
+            lstStatus.append(lstStatusDict[i])
+    #print("sssss:",lstStatus)
+
+    status = []
+    for i in lstStatus:
+        i = {i['IP'] : i}
+       # print (i)
+        for j in i:
+            i[j].pop('IP')
+            #print (i[j])
+        print (i)
+        print (" ")
+
+        status.append(i)
+    #print('zzz',status)
+    print("sssssss:",lstStatus)
+    return refresh_time, status
+
 
 
 ###########开始启动wangye###############
@@ -524,6 +635,10 @@ def start_web(mode):
     def home():
         lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
                    'Status', 'Master', 'Mirror')
+        
+        lstDesc_switch = ['PortID', 'FramTX', 'FramRX', 'encout',
+                       'Discc3', 'LinkFL', 'LossSC', 'LossSG']
+        
         if mode == 'rt':
             refresh_time = _get_TimeNow_Human()
             Status = []
@@ -531,10 +646,12 @@ def start_web(mode):
             for i in range(len(lstHAAPAlias)):
                 Status.append(dictEngines[i][lstHAAPAlias[i]])
             # print(Status)
-            
+
+ 
 ################### #    db数据库# # ############################            
         elif mode == 'db':
             tuplHAAP = get_engine_from_db()
+            tuplSWITCH = get_Switch_from_db()
             # print(tuplHAAP)
             
             if tuplHAAP:
@@ -543,16 +660,22 @@ def start_web(mode):
             else:
                 refresh_time = _get_TimeNow_Human()
                 Status = None
+                
+            if tuplSWITCH:
+                refresh_time = tuplSWITCH[0]
+                Status_Switch = tuplSWITCH[1]
+            
+            else:
+                refresh_time = _get_TimeNow_Human()
+                Status_Switch = None
 
         return render_template("monitor.html",
-                               Title=lstDesc,
+                               Title=lstDesc,Title_switch=lstDesc_switch,
                                refresh_time=refresh_time,
-                               Status=Status)
+                               Status=Status, Status_Switch=Status_Switch)
 
     app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
 
-
-Switch_status_list = "wwwwww"
 
 
 # 更新传入数据
@@ -821,6 +944,10 @@ def main():
 
 
 if __name__ == '__main__':
+    #get_engine_from_db(),get_Switch_from_db()
+    #get_SwW()
+    get_Switch_from_db()
+  #  #get_Switch_status_list()
     main()
     # print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[1]))
     # print (type(_SW('172.16.254.75',[1,2,3])._dicPartPortError))
