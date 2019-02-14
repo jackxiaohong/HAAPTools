@@ -17,8 +17,8 @@ objCFG.read('Conf.ini')
 
 
 # <<<HAAP Fault>>>
-faults=objCFG.get('EngineFault','Faults')
-faults=eval(faults)
+#faults=objCFG.get('EngineFault','Faults')
+#faults=eval(faults)
 #print(type(faults))
 #for i in faults:
     #print(i)
