@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <title></title>
     <link href="{{ url_for('static',filename='bootstrap.css') }}" rel="stylesheet" type="text/css"/>
-
 </head>
 <body>
 
@@ -81,24 +80,21 @@
 									</li>
 								</ul>
 							</div>
-				
 						</nav>
-			
-			<div class="jumbotron">
-				<h1>
-					HA-AP Monitor
-				</h1>
-				<p>
-					This is a Monitor Program for HA-AP Engines.
-				</p>
 
-			</div>
-			
+            {% if error == 1 %}
+            <div class="alert alert-warning">
+	            <a href="{{ url_for('warning') }}" target="" class="close" data-dismiss="alert">
+                    查看详情
+	            </a>
+	            <strong>警告！</strong>有错误信息，请立即处理。
+            </div>
+            {% endif %}
 			<h3 class="text-left text-info">
 				Engine Status
 			</h3>
-			
-			
+
+
 					{% if Status %}
 						<table class="table">
 							<thead>
@@ -132,11 +128,10 @@
 					    {% endfor %}
 					{% else %}
 						<p>No Data to Show...</p>
-
 					{% endif %}
 				</tbody>
-		
-			
+
+
 			<div class="row clearfix">
 				<div class="col-md-12 column">
 					<table class="table">
@@ -150,7 +145,55 @@
 								</th>
 							</tr>
 						</thead>
-					</table>
+                        <thead>
+                            <tr>
+                                <h3 class="text-left text-info">
+				                Switch Status
+			                    </h3>
+                            </tr>
+                        </thead>
+                        {% if Status_switch and Switches_ip %}
+                            {% for i in Status_switch %}
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <h3 class="text-left text-info">
+                                                IP：{{ i }}
+                                            </h3>
+                                            {% for t in Title_switches %}
+                                            <th>
+                                                {{t}}
+                                            </th>
+                                            {% endfor %}
+                                        </tr>
+                                    </thead>
+                                    <tr>
+                                    {% for k in Status_switch[i] %}
+                                         <tr class="success">
+                                                <td>
+                                                    {{ k }}
+                                                </td>
+                                             {% for d in Status_switch[i][k] %}
+                                                 <td>
+                                                     {{ d }}
+                                                 </td>
+                                             {% endfor %}
+                                    {% endfor %}
+                                    </tr>
+                                    <tr class="success">
+                                        {% for m in status_sum[i] %}
+                                        <td>
+                                            {{ m }}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                </tbody>
+                            {% endfor %}
+					    {% else %}
+						<p>No Data to Show...</p>
+					    {% endif %}
+					    </table>
+
 				</div>
 			</div>
 			<div class="progress progress-striped">

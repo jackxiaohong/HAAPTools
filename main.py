@@ -15,7 +15,7 @@ from mongoengine import *
 from threading import Thread
 # import thread
 
-from flask import Flask, render_template, redirect  # , request
+from flask import Flask, render_template, redirect , request
 
 try:
     import configparser as cp
@@ -113,6 +113,7 @@ for i in objCFG.items('Engines'):
     oddEngines[i[0]] = i[1]
 lstHAAPAlias = list(oddEngines.keys())
 lstHAAP = list(oddEngines.values())
+
 #lstHAAP = list(i[0] for i in objCFG.items('Engines'))
 intTLevel = int(objCFG.get('MessageLogging', 'TraceLevel'))
 intTNPort = int(objCFG.get('EngineSetting', 'TelnetPort'))
@@ -326,6 +327,10 @@ class collHAAP(Document):
     time = DateTimeField(default=datetime.datetime.now())
     engine_status = ListField()
 
+# get status
+class collSWITCH(Document):
+    time = DateTimeField(default=datetime.datetime.now())
+    switch_status = DictField()
 
 class DB_collHAAP(object):
     connect(strDBName, host=strDBServer, port=intDBPort)
@@ -373,31 +378,79 @@ class DB_collHAAP(object):
         last_record = collHAAP.objects().order_by('-time').first()
         return(last_record.time, last_record.engine_status)
 
+# return
+    def get_last_record_switch(self):
+        last_record_switch = collSWITCH.objects().order_by('-time').first()
+        print ('aaaa',last_record_switch)
+        return(last_record_switch.time, last_record_switch.switch_status)
+
 
 def get_engine_from_db():
     # refresh_time = ['']
     db = DB_collHAAP()
     # def get_last_status():
     last_update = db.get_last_record()
-    # print('Last record @ %s' % last_update[0])
+    print('Last record @ %s' % last_update[0])
     refresh_time = last_update[0]
     lstStatusDict = last_update[1]
     lstStatus = []
     for i in range(len(lstHAAPAlias)):
         # print(lstStatusDict[i][lstHAAPAlias[i]])
         lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
-        # print(lstStatus)
+    # print('lstStatus', lstStatus)
     return refresh_time, lstStatus
+
+# try
+def get_switch_from_db():
+    db_switch = DB_collHAAP()
+    last_update = db_switch.get_last_record_switch()
+    print(last_update)
+    lstStatus = []
+    return lstStatus
 
 
 def start_web(mode):
     app = Flask(__name__, template_folder='./web/templates',
                 static_folder='./web/static', static_url_path='')
 
-    @app.route("/")
+    @app.route("/", methods=['GET', 'POST'])
     def home():
         lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
                    'Status', 'Master', 'Mirror')
+        lstDesc_switches = ('PortID', 'FramTX', 'FramRX', 'Encout',
+                       'Discc3', 'LinkFL', 'LossSC', 'LossSG')
+
+        Switches_ip = []
+        for ip in objCFG.options("Switches"):
+            Switches_ip.append(objCFG.get("Switches",(ip)))
+
+        # virtual switch data
+        Status_switch = {'172.16.254.76': {'port6': ['0', '0', '0', '0', '0', '0', '2'],
+                                           'port4': ['0', '0', '0', '0', '0', '0', '2'],
+                                           'port5': ['0', '0', '0', '0', '0', '0', '2'],
+                                           'port2': ['12', '14', '0', '0', '0', '2', '4'],
+                                           'port3': ['11', '13', '0', '0', '0', '2', '4'],
+                                           'port1': ['13', '15', '0', '0', '0', '2', '4']},
+                         '172.16.254.75': {'port6': ['0', '0', '0', '0', '0', '0', '1'],
+                                            'port4': ['0', '0', '0', '0', '0', '0', '2'],
+                                            'port5': ['0', '0', '0', '0', '0', '0', '2'],
+                                            'port2': ['23', '24', 392100.0, '0', '1', '3', '5'],
+                                            'port3': ['3.8m', '3.8m', 18000.0, '0', '1', '3', '5'],
+                                            'port1': ['3.8m', '3.8m', 22000.0, '0', '0', '2', '4']}}
+
+        # switch数据的合计数据
+
+        status_sum = {Switches_ip[0]:['sum',0,0,'Encount','Discc3',0,0,0],
+                      Switches_ip[1]:['sum',0,0,'Encount','Discc3',0,0,0]}
+
+        # 预警提示弹出为0，不弹出为1
+        if request.method == 'GET':
+            error = 1
+            print (error)
+        else:
+            error = 0
+            print (error)
+
         if mode == 'rt':
             refresh_time = _get_TimeNow_Human()
             Status = []
@@ -405,8 +458,10 @@ def start_web(mode):
             for i in range(len(lstHAAPAlias)):
                 Status.append(dictEngines[i][lstHAAPAlias[i]])
             # print(Status)
+
         elif mode == 'db':
             tuplHAAP = get_engine_from_db()
+
             # print(tuplHAAP)
             if tuplHAAP:
                 refresh_time = tuplHAAP[0]
@@ -417,8 +472,39 @@ def start_web(mode):
 
         return render_template("monitor.html",
                                Title=lstDesc,
+                               Title_switches=lstDesc_switches,
                                refresh_time=refresh_time,
-                               Status=Status)
+                               Status=Status,
+                               Status_switch=Status_switch,
+                               Switches_ip = Switches_ip,
+                               status_sum = status_sum,
+                               error = error)
+
+    # 错误信息显示页面
+    @app.route("/warning/")
+    def warning():
+
+        error_message = [{'Level': '2',
+                         'time_of_send_Email': '2019/1/25 15:00:10',
+                         'message': 'Engine \'192.168.0.7\' Mirrir Degrade'},
+                         {'Level': '3',
+                          'time_of_send_Email': '2019/1/27 13:34:50',
+                          'message': 'Engine \'192.168.0.7\' TEST'},
+                         {'Level': '2',
+                          'time_of_send_Email': '2014/12/04 05:34:34',
+                          'message': 'WUlitou'}]
+
+        # # 确认按钮
+        # if request.method == 'GET':
+        #     error = 1
+        #     print (error)
+        # else:
+        #     error = 0
+        #     print (error)
+
+        return render_template("warning.html",
+                               error_message=error_message)
+
     app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
 
 
@@ -662,9 +748,38 @@ def main():
         thrd_web_db()
 
     elif sys.argv[1] == 'test':
-
+        # get_switch_from_db()
         # timing_clct_to_db(15)
         # show_N_record(3)
+
+        # Switches_ip = []
+        # for ip in objCFG.options("Switches"):
+        #     Switches_ip.append(objCFG.get("Switches",(ip)))
+        # Status_switch = {'172.16.254.76': {'port6': ['0', '0', '0', '0', '0', '0', '2'],
+        #                                    'port4': ['0', '0', '0', '0', '0', '0', '2'],
+        #                                    'port5': ['0', '0', '0', '0', '0', '0', '2'],
+        #                                    'port2': ['12', '14', '0', '0', '0', '2', '4'],
+        #                                    'port3': ['11', '13', '0', '0', '0', '2', '4'],
+        #                                    'port1': ['13', '15', '0', '0', '0', '2', '4']},
+        #                  '172.16.254.75': {'port6': ['0', '0', '0', '0', '0', '0', '1'],
+        #                                    'port4': ['0', '0', '0', '0', '0', '0', '2'],
+        #                                    'port5': ['0', '0', '0', '0', '0', '0', '2'],
+        #                                    'port2': ['23', '24', 392100.0, '0', '1', '3', '5'],
+        #                                    'port3': ['3.8m', '3.8m', 18000.0, '0', '1', '3', '5'],
+        #                                    'port1': ['3.8m', '3.8m', 22000.0, '0', '0', '2', '4']}}
+        # for i in Status_switch:
+        #     # print(Status_switch[i])
+        #     for k in Status_switch[i]:
+        #         # print(k,Status_switch[i][k])
+        #         for d in Status_switch[i][k]:
+        #             print(d)
+        queren = {'confirm_status':'0',
+                  'Level':'2',
+                  'time_of_send_Email':'2019/1/25 15:00:10',
+                  'message':'Engine \'192.168.0.7\' Mirrir Degrade'}
+
+        if queren['confirm_status']=="0":
+            print("有问题")
         pass
 
     else:
@@ -672,4 +787,5 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()
