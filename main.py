@@ -14,6 +14,7 @@ import re
 from mongoengine import *
 from threading import Thread
 # import thread
+import random
 
 from flask import Flask, render_template, redirect  # , request
 
@@ -394,8 +395,13 @@ def start_web(mode):
     app = Flask(__name__, template_folder='./web/templates',
                 static_folder='./web/static', static_url_path='')
 
+
+
+
     @app.route("/")
     def home():
+        haapdataes = random.randint(0, 999)
+
         lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
                    'Status', 'Master', 'Mirror')
         if mode == 'rt':
@@ -419,7 +425,15 @@ def start_web(mode):
                                Title=lstDesc,
                                refresh_time=refresh_time,
                                Status=Status)
-    app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
+
+    @app.route("/data/")
+    def haapdata():
+        haapdataes = random.randint(0, 999)
+        print('haapdata', haapdataes)
+        return str(haapdataes)
+
+    app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5455)
+
 
 
 def job_update_interval(intInterval):

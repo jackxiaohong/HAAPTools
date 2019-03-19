@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<meta http-equiv="refresh" content="30" >
+<meta http-equiv="refresh" content="10000000" >
 <html>
 <head lang="en">
     <meta charset="UTF-8">
@@ -8,9 +8,6 @@
 
 </head>
 <body>
-
-
-
 <div class="container">
 	<div class="row clearfix">
 		<div class="col-md-12 column">
@@ -93,8 +90,11 @@
 				</p>
 
 			</div>
-			
+
+			<h1 id="haapdata">aaaa</h1>
+
 			<h3 class="text-left text-info">
+
 				Engine Status
 			</h3>
 			
@@ -209,4 +209,62 @@
     </div>
 </footer>
 </body>
+
+<link href="{{ url_for('static',filename='JQuery.js') }}" rel="stylesheet" type="text/css"/>
+
+{##}
+{#<script type="text/javascript">#}
+{#  function getData() {#}
+{#      return new Promise((resolve,reject) => {#}
+{#          setTimeout(() => {#}
+{#              resolve({data:666})#}
+{#          },500)#}
+{#      })#}
+{#  }#}
+{#  // 轮询#}
+{#  async function start () {#}
+{#    const { data } = await getData() // 模拟请求#}
+{#    console.log(data)#}
+{#    timerId = setTimeout(start, 1000)#}
+{#  }#}
+{#  start ()#}
+{#</script>#}
+
+
+
+{#<script>#}
+{#    function sendApi() {#}
+{#        $.ajax({#}
+{#            type: 'GET',#}
+{#            url: '',#}
+{#            dataType: 'jsonp', //希望服务器返回json格式的数据#}
+{#            jsonp: "callback",#}
+{#            jsonpCallback: "successCallback",//回调方法#}
+{#            success: function (data) {#}
+{#                $("#haapdata").text(data);#}
+                {#console.log(data);#}
+{#            }#}
+{##}
+{#        });#}
+{#    }#}
+{#    sendApi();#}
+{#</script>#}
+
+<script>
+    window.onload = function () {
+        let ajaxObj = new XMLHttpRequest();
+
+        setInterval(function () {
+            ajaxObj.open('get', '{{ url_for('haapdata') }}');
+            ajaxObj.send();
+            ajaxObj.onreadystatechange = function () {
+                if (ajaxObj.readyState === 4 && ajaxObj.status === 200) {
+                    let h1 = document.getElementById('haapdata');
+                    h1.innerHTML = ajaxObj.responseText;
+                    console.log(ajaxObj.responseText);
+                }
+            }
+        }, 1000);
+   }
+</script>
 </html>
