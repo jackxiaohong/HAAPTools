@@ -3,6 +3,23 @@ from ClassConnect import *
 from collections import OrderedDict
 import re
 import Source as s
+import os
+import time
+
+
+
+def deco_OutFromFolder(func):
+    strOriFolder = os.getcwd()
+
+    def _deco(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except Exception as E:
+            # print(func.__name__, E)
+            pass
+        finally:
+            os.chdir(strOriFolder)
+    return _deco
 
 
 def deco_Exception(func):
@@ -60,6 +77,7 @@ class SANSW(object):
                     reDataAndErr = re.compile(
                         r'(.*:)((\s+\S+){2})((\s+\S+){6})((\s+\S+){5})(.*)')
                     resultDataAndErr = reDataAndErr.match(portErrLine)
+
                     return(resultDataAndErr.group(2).split() +
                            resultDataAndErr.group(6).split())
 
@@ -70,6 +88,7 @@ class SANSW(object):
                 lstErrInfo = _getErrorAsList(intPortNum, lstPortErrLines)
                 oddPortError[intPortNum] = lstErrInfo
             self._dicPartPortError = oddPortError
+            #print 'aaaaa',oddPortError
 
         if self._strAllPortError:
             _putToDict()
@@ -178,6 +197,60 @@ class SANSW(object):
         if self._dicPartPortError:
             print('\nThe Ports Errors of SAN Switch {} ...'.format(self._host))
             _show_porterrors()
+
+    @deco_OutFromFolder
+    def periodic_sw_check(self, lstSWCommand, strResultFolder, strResultFile):
+        tn = self._SWConn
+        print('111')
+        s.GotoFolder(strResultFolder)
+        print('222')
+        #if tn.exctCMD('\n'):
+        with open(strResultFile, 'w') as f:
+            for strCMD in lstSWCommand:
+                time.sleep(0.25)
+                strResult = tn.exctCMD(strCMD)
+                if strResult:
+                    print(strResult)
+                    f.write(strResult)
+                else:
+                    strErr = '\n*** Execute Command "{}" Failed\n'.format(
+                        strCMD)
+                    # print(strErr)
+                    f.write(strErr)
+
+    # def SWstatus(self,ip,SAN_status):
+    #     #ports=['a1','a2','b1','b2']
+    #     #for ip in ips:
+    #     SAN_status.update({ip: {'ABTS': '0', 'Qfull': '0', 'Mirror': '0', 'EgReboot': '0'}})
+    #     #print(SAN_status)
+    #     abts = []
+    #     qf = []
+    #     #for port in ports:
+    #
+    #         #print port
+    #         portcmd='aborts_and_q_full '
+    #         #portcmd+=port
+    #         if self._TN_Conn:
+    #             strabts_qf = self._TN_Conn.exctCMD(portcmd)
+    #         else:
+    #             self._telnet_connect()
+    #             if self._TN_Conn:
+    #                 strabts_qf = self._TN_Conn.exctCMD(portcmd)
+    #         listabts_qf = strabts_qf.split('\r')
+    #         #print 'asasasasasasa',listabts_qf[8][13]
+    #         abts.append(listabts_qf[2][7])
+    #         qf.append(listabts_qf[8][13])
+    #     print( abts, qf)
+    #     #print (SAN_status[ip])
+    #     for i in abts:
+    #         if i != '0' :
+    #             SAN_status[ip]['ABTS']= i
+    #             break
+    #     for i in qf:
+    #         if i != '0' :
+    #             SAN_status[ip]['Qfull'] = i
+    #             break
+    #     print(SAN_status)
 
 
 if __name__ == '__main__':

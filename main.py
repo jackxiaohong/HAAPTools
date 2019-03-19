@@ -1,4 +1,6 @@
 # coding:utf-8
+
+# change line 48,219,622,182
 from __future__ import print_function
 import ClassSW as sw
 import ClassHAAP as haap
@@ -8,11 +10,20 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 import os
 import sys
 import datetime
+import time
 import getpass
 import re
 from mongoengine import *
 from threading import Thread
 import thread
+
+signal = 0
+import ClassSend_Email
+from email_form import send_warnmail
+
+if signal == 1:
+    t = ClassSend_Email.SEmail
+    t.send_email()
 
 from flask import Flask, render_template, redirect, request
 
@@ -20,9 +31,6 @@ try:
     import configparser as cp
 except Exception:
     import ConfigParser as cp
-
-import logging
-logging.basicConfig()
 
 # <<<Help String Feild>>>
 strHelp = '''
@@ -39,6 +47,7 @@ strHelp = '''
         bkCFG          : Backup Config for All Defined Engine(s), Save in {cfg} Folder
         ec             : Execute Commands listed in <File> on Given Engine
         pc             : Execute Periodic Check on Given Engine, Save in {pc} Folder
+        pcsw           : Execute Periodic Check on Given Switch, Save in {pc} Folder
         pcALL          : Execute Periodic Check on All Defined Engine(s), Save in {pc} Folder
         chgFW          : Change Firmware for Given Engine
         sts            : Show Overall Status for All Engines
@@ -46,6 +55,8 @@ strHelp = '''
         stm            : Get Time of All Defined Engine(s)
         wrt            : Start Web Update Real Time
         wdb            : Start Web Update from DataBase
+        sancheck       : san check
+        swc            : start warning check
         '''
 
 strPTCLHelp = '''
@@ -62,6 +73,10 @@ strAutoCLIHelp = '''
 
 strPCHelp = '''
     pc <Engine_IP>
+'''
+
+strPCSWHelp = '''
+    pcsw <Switch_IP>
 '''
 
 strHelpAnalyseTrace = '''
@@ -82,7 +97,6 @@ strHelpSingleCommand = '''
 objCFG = cp.ConfigParser(allow_no_value=True)
 objCFG.read('Conf.ini')
 
-# 调用config文件，数据库的端口路径
 # <<<DB Config>>>
 strDBServer = objCFG.get('DBSetting', 'host')
 intDBPort = int(objCFG.get('DBSetting', 'port'))
@@ -96,10 +110,18 @@ intSWSSHPort = int(objCFG.get('SWSetting', 'port'))
 oddSWPort = Odd()
 for i in objCFG.items('SWPorts'):
     oddSWPort[i[0]] = eval(i[1])
+    # print(oddSWPort)
+# print(oddSWPort)
+# for i in oddSWPort.items():
+    # print(type(i))
+
 lstSW = list(oddSWPort.keys())
-print (lstSW)
 lstSWPorts = list(oddSWPort.values())
-print (lstSWPorts)
+# print(oddSWPort)
+
+# if i == '172.16.254.75':
+# print (oddSWPort.values())
+# print (lstSWPorts,lstSW,)
 
 strSWPWD = objCFG.get('SWSetting', 'password')
 if strSWPWD:
@@ -108,7 +130,8 @@ else:
     strSWPWD = getpass.getpass(
         prompt='Please Input Your SAN Switch Password for User {}:'.format(
             strSWUser), stream=None)
-    
+# <<<SAN Switch Config>>>
+
 # 获取交换机的Ip
 # <<<SAN Switch Config>>>
 addSwitches = Odd()
@@ -128,6 +151,7 @@ intTLevel = int(objCFG.get('MessageLogging', 'TraceLevel'))
 intTNPort = int(objCFG.get('EngineSetting', 'TelnetPort'))
 intFTPPort = int(objCFG.get('EngineSetting', 'FTPPort'))
 lstCheckCMD = list(i[0] for i in objCFG.items('PeriodicCheckCommand'))
+# lstSWCheckCMD = list(i[0] for i in objCFG.items('PeriodicSWCheckCommand'))
 
 strHAAPPasswd = objCFG.get('EngineSetting', 'HAAPPassword')
 if strHAAPPasswd:
@@ -152,14 +176,51 @@ strTCAFolder = objCFG.get('FolderSetting', 'traceanalyse')
 strCFGFolder = objCFG.get('FolderSetting', 'cfgbackup')
 # PCFolder = HAAP Periodic Check Result Folder
 strPCFolder = objCFG.get('FolderSetting', 'PeriodicCheck')
+
 # <<<Folder Config>>>
 # <<<Read Config File Field>>>
 
 # <<<Inside Function Feild>>>
+
+# <<<warn level>>>
+level1 = objCFG.get('level', '1')
+level1 = eval(level1)
+abtslv1 = level1['abts']
+qflv1 = level1['Q_full']
+eclv1 = level1['Encout']
+d3lv1 = level1['Discc3']
+
+level2 = objCFG.get('level', '2')
+level2 = eval(level2)
+abtslv2 = level2['abts']
+qflv2 = level2['Q_full']
+eclv2 = level2['Encout']
+d3lv2 = level2['Discc3']
+
+level3 = objCFG.get('level', '3')
+level3 = eval(level3)
+abtslv3 = level3['abts']
+qflv3 = level3['Q_full']
+eclv3 = level3['Encout']
+d3lv3 = level3['Discc3']
+# print(type(abtslv1))
+
 # ################################################
 
+# <<<refreshtime Config>>>
 
-# 方法
+flashfreshtime = objCFG.get('Refreshtime', 'flashfreshtime')
+databasefreshtime = objCFG.get('Refreshtime', 'databasefreshtime')
+timeup = flashfreshtime
+databasefresh = int(databasefreshtime,)
+# <<<refreshtime Config>>>
+
+#<<<2h用户未确认邮件发送>>>
+sub= "用户未确认信息"
+mailto_list = objCFG.get('EmailSetting','receiver')
+#<<<2h用户未确认邮件发送>>>
+
+
 def _get_TimeNow_Human():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -171,6 +232,10 @@ def _get_TimeNow_Folder():
 # en-Instance The HAAP by IP...
 def _HAAP(strEngineIP):
     return haap.HAAP(strEngineIP, intTNPort, strHAAPPasswd, intFTPPort)
+
+
+def _HAAP_Status(strEngineIP):
+    return haap.HAAP_Status(strEngineIP, intTNPort, strHAAPPasswd, intFTPPort)
 
 
 # en-Instance The SAN Switch by IP and SAN Switch Ports...
@@ -187,6 +252,8 @@ def _get_SWInstance():
                                        strSWUser, strSWPWD, lstSWPorts[i])
     return oddSWInst
 
+    # print ('aaaaaa:'),oddSWInst
+
 
 def _sw_switchshow(strSWIP):
     _SW(strSWIP, [])._switchshow()
@@ -197,7 +264,8 @@ def _sw_switchshow(strSWIP):
 def _get_HAAPInstance():
     oddTNInst = Odd()
     for i in range(len(lstHAAP)):
-        oddTNInst[lstHAAP[i]] = _HAAP(lstHAAP[i])
+        oddTNInst[lstHAAP[i]] = _HAAP_Status(lstHAAP[i])
+        # print('aaaaaa:'), lstHAAP
     return oddTNInst
 
 # analyze trace files under DesFolder, results saved in .xsl files
@@ -215,6 +283,33 @@ def _periodic_check(strEngineIP):
                                       strPCFolder,
                                       'PC_{}_{}.log'.format(
                                           _get_TimeNow_Folder(), strEngineIP))
+
+
+def _periodic_sw_check(strSWIP, ports):
+    # lstSWport = 0
+    cmd = 'portshow '
+    lstSWCheckCMD = ['switchshow', 'porterrorshow']
+    # lstSWCheckCMD.insert('aaa1')
+    for i in ports:
+        i = str(i)
+        print(i, type(i))
+        cmd += i
+        print(cmd)
+        lstSWCheckCMD.insert(-1, cmd)
+        cmd = 'portshow '
+    print(lstSWCheckCMD)
+    _SW(strSWIP, lstSWPorts).periodic_sw_check(lstSWCheckCMD,
+                                               strPCFolder,
+                                               'PC_{}_{}.log'.format(
+                                                   _get_TimeNow_Folder(), strSWIP))
+
+
+def _has_abts_qfull(strEngineIP, SANstatus):
+    _HAAP(strEngineIP).has_abts_qfull(SANstatus, strEngineIP)
+
+
+def _SWstatus(strSWIP, SANstatus):
+    _SW(strSWIP, lstSWPorts).SWstatus(strSWIP, SANstatus)
 
 
 # execute cmds in file and print the results
@@ -263,12 +358,11 @@ def _ShowEngineInfo():
     dictEngines = _get_HAAPInstance()
     info_lst = []
     for i in lstHAAP:
-        info_lst.append(dictEngines[i].infoEngine_lst())
+        info_lst.append(dictEngines[i].infoEngine_lst()[0])
 
     def general_info():
         lstDesc = ('EngineIP', 'Uptime', 'AH', 'Firm_Version',
-                   'Status', 'Master', 'Mirror')
-        
+                   'Status', 'Master', 'Mirror', 'ABTs', 'Qfull')
         for strDesc in lstDesc:
             print(strDesc.center(14), end=''),
         print()
@@ -317,7 +411,6 @@ def _isFile(s):
 def _isPort(s):
     if type(s) == int:
         return True
-
     if type(s) == str:
         if s.isdigit():
             if type(eval(s)) == int:
@@ -325,140 +418,316 @@ def _isPort(s):
     return False
 
 
-# engine数据获取方法
+# by klay
 def get_HAAP_status_list():
+
+    try:
+        db = DB_collHAAP()
+        last_update = db.get_last_record()
+        #print(last_update[1])
+        xxx = last_update[1]
+        print(xxx)
+    except:
+        print('ddddddddddddd')
     lstHAAPstatus = []
+    warnlist = []
+    warnlevel = []
     for i in range(len(lstHAAP)):
+        # print('kkkkkkkk')
+        #print(xxx[i])
+        #print(i)
+        #print(lstHAAPAlias)
         t = {}
-        t[lstHAAPAlias[i]] = _HAAP(lstHAAP[i]).infoEngine_lst()
+        t[lstHAAPAlias[i]] = _HAAP_Status(lstHAAP[i]).infoEngine_lst()[1]
         lstHAAPstatus.append(t)
-        # print ("#####################:", lstHAAPstatus)
-    return lstHAAPstatus
+        print('lstHAAPstatus',t)
+        try:
+            items_db = xxx[i].values()[0]
+        except:
+            pass
+        for items in t.values():
+            #print(items)
+            #print(xxx[i])
+            eglevel = 0
+            # print(items['Status'])
+            if items['Status'] == 'ONLINE':
+                try:
+                    if items_db['Status'] == 'ONLINE':  # xxx is engine status from DB's first record
+                        print('okokok')
+                        warnlist.append('Engine' + lstHAAP[i] + '\'s status is ' + items['Status'])
+                        warnlevel.append('3')
+                except:
+                    pass
+            if items['Mirror'] == 'All OK':
+                try:
+                    if items_db['Mirror'] == 'All OK':  # xxx is engine status from DB's first record
+                        warnlist.append('Engine' + lstHAAP[i] + '\'s mirror is ' + 'not ok')
+                        warnlevel.append('3')
+                except:
+                    pass
+            s = 0
+            s1 = 0
+            uptime = items['Uptime']
+            print ('uptime',uptime)
 
-# Switch数据获取方法
-'''def get_Switch_status_list():
-    lstSwitchstatus = []
-    for i in range(len(lstSW)):
-        a = {}
-        a[lstSwitchAlias[i]] = _SW(lstSW[i],lstSWPorts)._dicPartPortError[1]
-        lstSwitchstatus.append(a)
+            s += int(uptime[-2:])
+            s += int(uptime[-5:-3]) * 60
+            s += int(uptime[-8:-6]) * 3600
+            if 'd' in uptime:
+                patt = re.compile(r'(\d*)')
+                day = patt.match(uptime).group()
+                s += int(day) * 24 * 60 * 60
+            try:
+                uptime1 = items_db['Uptime']
+                s1 += int(uptime1[-2:])
+                s1 += int(uptime1[-5:-3]) * 60
+                s1 += int(uptime1[-8:-6]) * 3600
+                if 'd' in uptime1:
+                    patt = re.compile(r'(\d*)')
+                    day = patt.match(uptime1).group()
+                    s1 += int(day) * 24 * 60 * 60
+                if uptime1 < uptime:
+                    warnlist.append('Engine' + lstHAAP[i] + ' had reboot')
+                    warnlevel.append('2')
+            except:
+                pass
+                # print(warnlist)
+    # print(lstHAAPstatus,warnlist,warnlevel)
+    # return lstHAAPstatus
 
-        #print("444444444444:",_dicPartPortError)
-        print ("###222222222222222########:", lstSwitchstatus)
-    return lstSwitchstatus'''
+    return [lstHAAPstatus, warnlist, warnlevel]
 
 
+###########################分割线##################################################
+'''
+@author: Paul
+@note: 交换机数据库数据获取
+
+'''
+# --SwitchIP---#
+
+
+def get_Switch_IP():
+    lstsw_ip = {}
+    a = lstSwitchAlias
+    b = lstSwitch
+    lstsw_ip = dict(zip(a, b))
+   # print("lstsw_ip:",lstsw_ip)
+    return lstsw_ip
+
+
+# --Switch端口总数--#
 def get_Switch_status_list():
     lstSwitchstatus = {}
-    ENCOUT = []
-    DICT3 = []
     for i in range(len(lstSW)): 
-        encout = 0
-        dict3 = 0
         a = {}
-        c = {} 
-        d = {}
         for h in range(len(lstSWPorts[i])):
-           # print("h:", lstSWPorts[i][h]) 
             q = lstSWPorts[i][h]
-            # print ('aaaa',q)
-            b = _SW(lstSW[i], lstSWPorts[i])._dicPartPortError[q]
-            # print('dasdssdfsdfsdf',b[2][:-1])
-            if b[2][-1] == 'm' or b[2][-1] == 'k':
-                if b[2][-1] == 'm':
-                    b[2] = (float(b[2][0:-1])) * 10000
-                else:
-                    b[2] = (float(b[2][0:-1])) * 1000
-            encout += int(b[2])
-
-            if b[3][-1] == 'm' or b[3][-1] == 'k':
-                if b[3][-1] == 'm':
-                    b[3] = (float(b[3][0:-1])) * 10000
-                else:
-                    b[3] = (float(b[3][0:-1])) * 1000
-            dict3 += int(b[3]) 
+            b = _SW(lstSW[i], lstSWPorts[i])._dicPartPortError[q]            
             a['port' + str(lstSWPorts[i][h])] = b
- 
-        a['IP'] = lstSW[i]
-
-        s = str(lstSW[i]) + ':' + ' '
-        s += str(encout)
-        s2 = str(lstSW[i]) + ':' + ' '
-        s2 += str(dict3)
-        ENCOUT.append(s)
-        DICT3.append(s2)
-
-        lstSwitchstatus[str(i)] = (a)
-        lstSwitchstatus.update(ENCOUT=ENCOUT)
-        lstSwitchstatus.update(DISCC3=DICT3)
+        lstSwitchstatus['Switch' + str(i)] = (a) 
+        # print ("lstSwitchstatus:", lstSwitchstatus)
     return lstSwitchstatus
 
-# <<get SW Warning>>
-def get_Switch_warning():
+
+# --错误总数--#
+def get_Switch_Total():
+    
+
+
+    try:
+        db = DB_collHAAP()
+        last_update = db.get_last_record_Switch()
+        lstStatusdict = last_update[3]
+        print(lstStatusdict)
+
+    except:
+        pass
+    
+    lst_total = {}
+    sw_warnlist = []
+    sw_warnlevel = []
+    
     for i in range(len(lstSW)): 
-        encoutw = 0
-        discc3w = 0
+        lstSwitchstatus = {}
+        FramTX = []
+        FramRX = []
+        ENCOUT = []
+        Discc3 = []
+        LinkFL = []
+        LossSC = []
+        LossSG = []
+        ALLTOTAL = []
+        ALLTOTAL_change = []
+        
+        ALLtotal = 0
+        ALLtotal_change = 0
+        
+        framtx = 0
+        framrx = 0 
+        encout = 0
+        discc3 = 0
+        linkfl = 0
+        losssc = 0
+        losssg = 0
+        a = {}
         for h in range(len(lstSWPorts[i])):
-            #print("h:", lstSWPorts[i][h]) 
             q = lstSWPorts[i][h]
-            # print ('aaaa',q)
             b = _SW(lstSW[i], lstSWPorts[i])._dicPartPortError[q]
-            #print('nnnnnn',b,lstSW,lstSW[i])
-            # print('dasdssdfsdfsdf',b[2][:-1])
+           # print("b:", b)
+            if b[0][-1] == 'm' or b[0][-1] == 'k':
+                if b[0][-1] == 'm':
+                    b[0] = (float(b[0][0:-1])) * 10000
+                else:
+                    b[0] = (float(b[0][0:-1])) * 1000
+            framtx += int(b[0])
+            # print("framtx:",framrx)
+            if b[1][-1] == 'm' or b[1][-1] == 'k':
+                if b[1][-1] == 'm':
+                    b[1] = (float(b[1][0:-1])) * 10000
+                else:
+                    b[1] = (float(b[1][0:-1])) * 1000
+            framrx += int(b[1])
             if b[2][-1] == 'm' or b[2][-1] == 'k':
                 if b[2][-1] == 'm':
                     b[2] = (float(b[2][0:-1])) * 10000
                 else:
                     b[2] = (float(b[2][0:-1])) * 1000
-            encoutw += int(b[2])
-
+            encout += int(b[2])
             if b[3][-1] == 'm' or b[3][-1] == 'k':
                 if b[3][-1] == 'm':
                     b[3] = (float(b[3][0:-1])) * 10000
                 else:
                     b[3] = (float(b[3][0:-1])) * 1000
-            discc3w += int(b[3])
-        print('ghghgggggggghhhhhh',encoutw,discc3w)
-
-        
-    #return{'Encout':encoutw,'DisCC3':discc3w}
-
-def get_SwW():
-    get_Switch_warning()
-    for i in range(len(lstSW)):
-
-        a=get_Switch_warning()
-        print('aaaaaaaaaaaaaaaaaaaaa',a)
-    #pass
-#print('2323232323232ssssss')
-#get_SwW()
-
-#######################################
-'''def get_Switch_count_list():
-    lstSwitchcount = []
-
-    for i in range(len(lstSW)): 
-        encout=0
-        c = {} 
-        for h in range(len(lstSWPorts[i])):
-            q=lstSWPorts[i][h]
-            b = _SW(lstSW[i],lstSWPorts[i])._dicPartPortError[q]
-            #print('dasdssdfsdfsdf',b[2][:-1])
-            if b[2][-1] == 'm' or b[2][-1] == 'k':
-                if b[2][-1] == 'm':
-                    b[2] =(float( b[2][0:-1] ))*10000
+            discc3 += int(b[3])
+            if b[4][-1] == 'm' or b[4][-1] == 'k':
+                if b[4][-1] == 'm':
+                    b[4] = (float(b[4][0:-1])) * 10000
                 else:
-                    b[2] =(float( b[2][0:-1] ))*1000
-                #print ('dfdsfdgfdghhhhhhhh',b[2])
-            encout += int(b[2])
-            c[str(lstSW[i])] = encout
-            print("dddddadsdasdsad",c)
-            #print("212313213312:",b[2])
-        c['IPnow']=lstSW[i]
-        lstSwitchcount[int(i)]=(c)
-    print ("###222222222222222########:", lstSwitchcount)
+                    b[4] = (float(b[4][0:-1])) * 1000
+            linkfl += int(b[4])
+            if b[5][-1] == 'm' or b[5][-1] == 'k':
+                if b[5][-1] == 'm':
+                    b[5] = (float(b[5][0:-1])) * 10000
+                else:
+                    b[5] = (float(b[5][0:-1])) * 1000
+            losssc += int(b[5])
+            if b[6][-1] == 'm' or b[6][-1] == 'k':
+                if b[6][-1] == 'm':
+                    b[6] = (float(b[6][0:-1])) * 10000
+                else:
+                    b[6] = (float(b[6][0:-1])) * 1000
+            losssg += int(b[6])
+            
+            ALLtotal = framtx + framrx + encout + discc3 + linkfl + losssc + losssg
+                    
+            # print("losssg:", losssg) 
+            # s = str(lstSW[i]) + ':' + ' '
+            s = str(framtx)
+            # s2 = str(lstSW[i]) + ':' + ' '
+            s1 = str(framrx)
+            s2 = str(encout)
+            s3 = str(discc3)
+            s4 = str(linkfl)
+            s5 = str(losssc)
+            s6 = str(losssg)
+            s7 = str(ALLtotal)
 
-    return lstSwitchcount'''
+            FramTX.append(s)
+            FramRX.append(s1)
+            ENCOUT.append(s2)
+            Discc3.append(s3)
+            LinkFL.append(s4)
+            LossSC.append(s5)
+            LossSG.append(s6)
+            ALLTOTAL.append(s7)
+         
+            lstSwitchstatus.update(FramTX=framtx)
+            lstSwitchstatus.update(FramRX=framrx)
+            lstSwitchstatus.update(ENCOUT=encout)
+            lstSwitchstatus.update(Discc3=discc3)
+            lstSwitchstatus.update(LinkFL=linkfl)
+            lstSwitchstatus.update(LossSC=losssc)
+            lstSwitchstatus.update(LossSG=losssg)
+            lstSwitchstatus.update(ALLTOTAL=ALLtotal)
+
+        switchname = objCFG.options("Switches")
+        # print ('switch_name',switchname)
+        sname = switchname[i]
+
+        print("sname:",sname)
+           
+        lst_total[sname] = (lstSwitchstatus)
+        print('lst_total[sname]',lst_total[sname])
+
+        # print(i,'   sd  ',Alltotal)
+        
+        try:
+            a = lstStatusdict[sname]
+            print("123131313:",a)
+            print ('count ', ALLTOTAL)
+            # print('2222')
+            # 运行不到
+            print('333333', a['ALLTOTAL'])
+
+            a = ALLtotal - a['ALLTOTAL']
+
+            print("axxxxxxxxxxxxxxxxxxxxxxxxxxxxxx:", a)
+            if a == 0:
+                print('aaaaaa=======000000')
+                # sw_warnlist.append('llllllllllll')
+                print('4444444444')
+                print("a:", a)
+                print("sdsdsdswwww:", 'Switch' + lstSW[i] + '\' s port error has reached ' + str(a))
+                sw_warnlist.append('Switch' + lstSW[i] + '\' s port error has reached ')
+                print('hgjhsgdjhsgjhsgfjhsdgfjs')
+                sw_warnlevel.append('3')
+                print('                    ', sw_warnlevel, sw_warnlist)
+
+            else:
+                if a > 10000:
+                    sw_warnlist.append('Switch' + lstSW[i] + '\'s port error has reached ' + str(a))
+                    sw_warnlevel.append('2')
+                else:
+                    if a > 5000:
+                        sw_warnlist.append('Switch' + lstSW[i] + '\'s port error has reached '+str(a))
+                        sw_warnlevel.append('1')
+        except:
+            #pass 
+
+
+            print("lstSwitchstatus:", lst_total, " ",sw_warnlist," ",sw_warnlevel)
+
+    return lst_total, sw_warnlist, sw_warnlevel
+
+################################分割线######################################################
+
+
+'''
+def email_send():
+    email_info = []
+    engine_info = get_HAAP_status_list()
+    print ('engine_info',engine_info)
+    enginelevel= engine_info[2]
+    enginelist = engine_info[1]
+    switch_info = get_Switch_Total()
+    sw_warnlist = switch_info[1]
+    sw_warnlevel = switch_info[0]
+    if enginelist !=[]:
+        email_info.update(enginelist(i))
+        email_info.append(enginelevel(i))
+    else:
+        email_info.append(sw_warnlist(i))
+        email_info.append( sw_warnlevel(i))
+    print('dfsds', email_info)
+    print('dfsd', enginelist)
+
+'''
+
+
+
+
+
 
 
 class collHAAP(Document):
@@ -466,41 +735,44 @@ class collHAAP(Document):
     engine_status = ListField()
 
 
+class collWARN(Document):
+    time = DateTimeField(default=datetime.datetime.now())
+    level = StringField()
+    warn_message = StringField()
+    confirm_status = IntField()
+
+
+# by wen
 class collSWITCH(Document):
     time = DateTimeField(default=datetime.datetime.now())
+    Switch_ip = DictField()
     Switch_status = DictField()
+    Switch_total = DictField()
 
 
-#引用参数连接数据库+++++++++++++++++++++++++++++++++++++++++++++
-# 方法
 class DB_collHAAP(object):
     connect(strDBName, host=strDBServer, port=intDBPort)
 
     def haap_insert(self, time_now, lstSTS):
         t = collHAAP(time=time_now, engine_status=lstSTS)
         t.save()
-    
-    def Switch_insert(self, time_now, lstSWS):
-        t = collSWITCH(time=time_now, Switch_status=lstSWS)
+
+    def haap2_insert(self, time_now, lstdj, lstSTS, confirm):
+        t = collWARN(time=time_now, level=lstdj, warn_message=lstSTS, confirm_status=confirm)
+        t.save()
+
+#BY wen###
+    def Switch_insert(self, time_now, lstSW_IP, lstSWS, lstSW_Total):
+        t = collSWITCH(time=time_now, Switch_ip=lstSW_IP, Switch_status=lstSWS, Switch_total=lstSW_Total)
         t.save()
 
     def haap_query(self, time_start, time_end):
         collHAAP.objects(date__gte=time_start,
                          date__lt=time_end).order_by('-date')
 
-##By Wen###                         
-    def haap_query(self, time_start, time_end):
-        collSWITCH.objects(date__gte=time_start,
-                         date__lt=time_end).order_by('-date')
-
     def haap_list_all(self):
         for i in collHAAP.objects().order_by('-time'):
             print(i.time, i.engine_status)
-
-###By Wen####
-    def haap_list_all(self):
-        for i in collSWITCH.objects().order_by('-time'):
-            print(i.time, i.Switch_status)
 
     def get_N_record_in_list(self, intN):
         N_record = collHAAP.objects().order_by('-time').limit(intN)
@@ -513,39 +785,10 @@ class DB_collHAAP(object):
                     lstRecord[x].append(N_record[x].engine_status[i][k])
         return lstRecord
 
-#####By Wen########
-    def get_N_record_in_list_SW(self, intN):
-        N_record = collSWITCH.objects().order_by('-time').limit(intN)
-        lstRecord = []
-        for x in range(len(N_record)):
-            lstRecord.append([])
-            lstRecord[x].append(N_record[x].time)
-            for i in range(len(N_record[x].Switch_status)):
-                for k in N_record[x].Switch_status[i].keys():
-                    lstRecord[x].append(N_record[x].Switch_status[i][k])
-        return lstRecord
-    
     def show_N_record(self, intN):
         r = self.get_N_record_in_list(intN)
         tuplDesc = ('Engine', 'Uptime', 'AH', 'FirmWare',
-                   'Status', 'Master', 'Mirror')
-        tuplWidth = (18, 16, 7, 13, 9, 9, 12)
-        for i in r:
-            print('\n Time: %s\n' % str(i[0]))
-            w = i[1:]
-            for d in range(len(tuplDesc)):
-                print(tuplDesc[d].ljust(tuplWidth[d]), end='')
-            print()
-            for p in w:
-                for x in range(len(p)):
-                    print(p[x].ljust(tuplWidth[x]), end='')
-                print()
-
- ###By Wen###               
-    def show_N_record_Sw(self, intN):
-        r = self.get_N_record_in_list_SW(intN)
-        tuplDesc = ('FramTX', 'FramRX', 'encout',
-                       'Discc3', 'LinkFL', 'LossSC', 'LossSG')
+                    'Status', 'Master', 'Mirror')
         tuplWidth = (18, 16, 7, 13, 9, 9, 12)
         for i in r:
             print('\n Time: %s\n' % str(i[0]))
@@ -560,152 +803,207 @@ class DB_collHAAP(object):
 
     def get_last_record(self):
         last_record = collHAAP.objects().order_by('-time').first()
-        return(last_record.time, last_record.engine_status)
+        return (last_record.time, last_record.engine_status)
     
 #######By Wen#######
     def get_last_record_Switch(self):
         last_record = collSWITCH.objects().order_by('-time').first()
-        return(last_record.time, last_record.Switch_status)
+        return(last_record.time, last_record.Switch_ip, last_record.Switch_status, last_record.Switch_total)
 
+# By Zane
+    def get_recond(self):
+        warns = []
+        a = collWARN.objects(confirm_status = 0)
+        for z in a:
+            warns.append({'level':z.level,'time':z.time,'message':z.warn_message})
+        return(warns)
 
-# +++++++++从数据库里面拿engine的信息++++++++++++++++
-def get_engine_from_db():
-    # refresh_time = ['']
+    def upconfirm(self):
+        upconfirm = collWARN.objects(confirm_status = 0).update(confirm_status = 1)
+     
+# By Zane
+def get_all_recond():
     db = DB_collHAAP()
-    # def get_last_status():
+    last_update = db.get_recond()
+    return last_update
+
+def upconfirm_stuta():
+    db = DB_collHAAP()
+    db.upconfirm()
+
+# By Zane
+def get_engine_from_db():
+    db = DB_collHAAP()
     last_update = db.get_last_record()
-    # print('Last record @ %s' % last_update[0])
+    
     refresh_time = last_update[0]
     lstStatusDict = last_update[1]
+    #print("A",lstStatusDict)
     lstStatus = []
-    for i in range(len(lstHAAPAlias)):
-        #print(lstStatusDict[i][lstHAAPAlias[i]])
-        lstStatus.append(lstStatusDict[i][lstHAAPAlias[i]])
-        #print(lstStatus)
+    #print('B',lstHAAPAlias)
+    for i in lstStatusDict:
+        a = i.values()[0]
+        #print(a)
+        b = [a['IP'],a['Status'],a['Uptime'],a['Master'],a['Mirror']]
+        lstStatus.append(b)
+    #print('C',lstStatus)
     return refresh_time, lstStatus
 
 
-#+++++++++++++++从Switch里面拿数据+++++++++++++++++++++++++
+# By Zane
 def get_Switch_from_db():
-    # refresh_time = ['']
     db = DB_collHAAP()
-    # def get_last_status():
     last_update = db.get_last_record_Switch()
-    # print('Last record @ %s' % last_update[0])
+
     refresh_time = last_update[0]
-    lstStatusDict = last_update[1]
-    lstStatus = []
-    lstportcount = []
-    lstIPTEST = []
-    #print("swwwww:",lstStatusDict)
-    
-    for i in lstStatusDict:
-        if i == "ENCOUT":
-            lstencout = lstStatusDict[i][:]
-            #print("xxxx:",lstencout)
-        elif i =="DISCC3":
-            lstdiscc3 = lstStatusDict[i][:]
-        else:
-            lstStatus.append(lstStatusDict[i])
-    #print("sssss:",lstStatus)
+    lstSwitch_ip = last_update[1]
+    lstSwitch_status = last_update[2]
+    lstSwitch_total = last_update[3]
+    lstSwitch_totals = []
 
-    status = []
-    for i in lstStatus:
-        i = {i['IP'] : i}
-       # print (i)
-        for j in i:
-            i[j].pop('IP')
-            #print (i[j])
-        print (i)
-        print (" ")
+    for i in lstSwitch_total:
+        lstswitch_totals = [lstSwitch_ip[i]]
+        for o in lstSwitch_total[i]:
+            if o == "ALLTOTAL":
+                continue
+            else:
+                lstswitch_totals.append(lstSwitch_total[i][o])
+        lstswitch_totals.append(lstSwitch_total[i]["ALLTOTAL"])
+        lstSwitch_totals.append(lstswitch_totals)
 
-        status.append(i)
-    #print('zzz',status)
-    print("sssssss:",lstStatus)
-    return refresh_time, status
+    lstall = [refresh_time,lstSwitch_ip,lstSwitch_status,lstSwitch_totals]
+    return lstall
 
 
-
-###########开始启动wangye###############
 def start_web(mode):
     app = Flask(__name__, template_folder='./web/templates',
                 static_folder='./web/static', static_url_path='')
 
-    @app.route("/")
+    @app.route("/", methods=['GET', 'POST'])
     def home():
-        lstDesc = ('Engine', 'Uptime', 'AlertHold', 'FirmWare',
-                   'Status', 'Master', 'Mirror')
+        lstDesc = ('EngineIP', 'Status', 'Uptime', 'Master', 'Mirror')
+        lstDesc_switches = ('SwitchIP', 'FramTX', 'Discc3', 'LinkFL', 'LossSC', 'LossSG', 'FramRX', 'ENCOUT', 'ALLTOTAL')
+        Switches_ip = []
+        for ip in objCFG.options("Switches"):
+            Switches_ip.append(objCFG.get("Switches",(ip)))
+
+        # 预警提示弹出为0，不弹出为1
+        if request.method == 'GET' and get_all_recond():
+            error = 1
+        else:
+            upconfirm_stuta()
+            error = 0
         
-        lstDesc_switch = ['PortID', 'FramTX', 'FramRX', 'encout',
-                       'Discc3', 'LinkFL', 'LossSC', 'LossSG']
-        
+        # 刷新时间
+        timeup=5
+
         if mode == 'rt':
             refresh_time = _get_TimeNow_Human()
             Status = []
             dictEngines = get_HAAP_status_list()
             for i in range(len(lstHAAPAlias)):
                 Status.append(dictEngines[i][lstHAAPAlias[i]])
-            # print(Status)
 
- 
-################### #    db数据库# # ############################            
         elif mode == 'db':
             tuplHAAP = get_engine_from_db()
             tuplSWITCH = get_Switch_from_db()
-            # print(tuplHAAP)
             
             if tuplHAAP:
-                refresh_time = tuplHAAP[0]
+                engine_refresh_time = tuplHAAP[0]
                 Status = tuplHAAP[1]
             else:
-                refresh_time = _get_TimeNow_Human()
+                engine_refresh_time = _get_TimeNow_Human()
                 Status = None
                 
             if tuplSWITCH:
-                refresh_time = tuplSWITCH[0]
-                Status_Switch = tuplSWITCH[1]
-            
+                switch_refresh_time = tuplSWITCH[0]
+                Status_Switch = tuplSWITCH[3]
             else:
-                refresh_time = _get_TimeNow_Human()
+                switch_refresh_time = _get_TimeNow_Human()
                 Status_Switch = None
 
+
         return render_template("monitor.html",
-                               Title=lstDesc,Title_switch=lstDesc_switch,
-                               refresh_time=refresh_time,
-                               Status=Status, Status_Switch=Status_Switch)
+                               Title = lstDesc,
+                               Title_switches = lstDesc_switches,
+                               engine_refresh_time = engine_refresh_time,
+                               switch_refresh_time = switch_refresh_time,
+                               Status = Status,
+                               Status_switch = Status_Switch,
+                               Switches_ip = Switches_ip,
+                               timeup = timeup,
+                               error = error)
+
+
+
+    # 错误信息显示页面
+    @app.route("/warning/")
+    def warning():
+        error_message = get_all_recond()
+
+        return render_template("warning.html",
+                               error_message=error_message)
 
     app.run(debug=False, use_reloader=False, host='0.0.0.0', port=5000)
 
 
-
-# 更新传入数据
 def job_update_interval(intInterval):
     t = s.Timing()
     db = DB_collHAAP()
 
     def do_it():
+        # print(get_HAAP_status_list()[0],'8888888888888')
         n = datetime.datetime.now()
         do_update = db.haap_insert(n, get_HAAP_status_list())
-        do_update_Switch = db.Switch_insert(n, get_Switch_status_list())
-        return do_update, do_update_Switch
+        # print('update complately...@ %s' % n)
+        return do_update
 
     t.add_interval(do_it, intInterval)
     t.stt()
-     
- # 更新交换机数据
-'''def job_update_interval_Switch(intInterval_Switch):
+
+
+# by klay
+confirm_status = 0
+
+
+def job_update_interval2(intInterval):
     t = s.Timing()
     db = DB_collHAAP()
 
-    def do_it_Switch():
+    def do_it():
         n = datetime.datetime.now()
+        print(get_HAAP_status_list()[2])
 
-        
-         # print('update complately...@ %s' % n)
-        return do_update_Switch
-  
-    t.add_interval(do_it_Switch, intInterval_Switch)
-    t.stt() '''
+
+        do_update = db.haap_insert(n, get_HAAP_status_list()[0])
+
+        if get_HAAP_status_list()[2] != []:
+            for i in range(len(get_HAAP_status_list()[2])):
+
+                do_update = db.haap2_insert(n, get_HAAP_status_list()[2][i], get_HAAP_status_list()[1][i], confirm_status)
+                # print('update complately...@ %s' % n)
+        return do_update
+
+    t.add_interval(do_it, intInterval)
+    t.stt()
+
+
+# #线程3交换机的
+def job_update_interval3(intInterval):
+    t = s.Timing()
+    db = DB_collHAAP()
+
+    def do_it():
+        n = datetime.datetime.now()
+        do_update_Switch = db.Switch_insert(n, get_Switch_IP(), get_Switch_status_list(), get_Switch_Total()[0])
+        if get_Switch_Total()[1] != []:
+            for i in range(len(get_Switch_Total()[2])):
+                do_update = db.haap2_insert(n, get_Switch_Total()[2][i], get_Switch_Total()[1][i], confirm_status)
+                # print('update complately...@ %s' % n)
+                return do_update_Switch, do_update
+
+    t.add_interval(do_it, intInterval)
+    t.stt()
 
 # def DB_Update_interval(intSec):
 #     t = s.Timing()
@@ -719,7 +1017,22 @@ def job_update_interval(intInterval):
 #     t.stt()
 
 
-# 网页停止
+
+
+#线程4发送邮件
+def job_update_interval4(intInterval):
+    t = s.Timing()
+    db = DB_collHAAP()
+    def do_it():
+        warninfo = send_warnmail(mailto_list, sub,get_all_recond())
+        print('ddf',warninfo)
+        return warninfo
+    t.add_interval(do_it, intInterval)
+    t.stt()
+
+
+#线程4发送邮件
+
 def stopping_web(intSec):
     try:
         print('\nStopping Web Server ', end='')
@@ -731,20 +1044,45 @@ def stopping_web(intSec):
     except KeyboardInterrupt:
         print('\n\nWeb Server Stopped.')
 
-
-# 启动网页，更新传入数据
+'''
 def thrd_web_db():
     t1 = Thread(target=start_web, args=('db',))
     t2 = Thread(target=job_update_interval, args=(10,))
-    
+
     t1.setDaemon(True)
     t2.setDaemon(True)
+    t1.start()
+    t2.start()
+    try:
+        while t2.isAlive():
+            pass
+        while t1.isAlive():
+            pass
+    except KeyboardInterrupt:
+        stopping_web(3)
+'''
+
+# by klay
+def start_warn_check():
+    t1 = Thread(target=start_web, args=('db',))
+    t2 = Thread(target=job_update_interval2, args=(10,))
+    t3 = Thread(target=job_update_interval3, args=(10,))
+    t4 = Thread(target=job_update_interval4, args=(10*360,))
+
+    t1.setDaemon(True)
+    t2.setDaemon(True)
+    t3.setDaemon(True)
+    t4.setDaemon(True)
 
     t1.start()
     t2.start()
-
+    t3.start()
+    t4.start()
     try:
-       
+        while t4.isAlive():
+            pass
+        while t3.isAlive():
+            pass
         while t2.isAlive():
             pass
         while t1.isAlive():
@@ -763,13 +1101,142 @@ def thrd_web_rt():
     except KeyboardInterrupt:
         stopping_web(3)
 
+# #<<<Warning Collection>>>
+# def get_wc():
+#     lstwarnstatus = []
+#     eglevel = 0
+#     aslv = 0
+#     qlv = 0
+#     lvlist=[]
+#     #<<get engine warning status>>
+#     for i in range(len(lstHAAP)):
+#         s = 'Engine'
+#         #s += lstHAAP[i]
+#         t = {}
+#         t[s] = _HAAP_Status(lstHAAP[i]).get_egw()#engine warning status
+#         #t.update({'Ip':i})
+#         for items in t.values():
+#             for k,v in items.items():#for key,value in dict
+#                 if v == 0:
+#                     items.pop(k)
+#         print(t)
+#         print(t.values()[0])
+#         if t.values() != [{}]:
+#             a = t.values()[0]
+#             print('aaaaa',a)
+#             #print(type(a))
+#             for k, v in a.items():
+#                 if k == 'Reboot':
+#                     eglevel = 3
+#                     lvlist.append(eglevel)
+#                 elif k == 'Mirror':
+#                     eglevel =3
+#                     lvlist.append(eglevel)
+#                 elif k == 'ABTs':
+#                     if v > abtslv3: aslv = 3
+#                     elif v > abtslv2: aslv = 2
+#                     else : aslv =1
+#                     lvlist.append(aslv)
+#
+#
+#                 else:
+#                     if k == 'Qfull':
+#                         if v > qflv3:
+#                             qlv = 3
+#                         elif v > qflv2:
+#                             qlv = 2
+#                         else:
+#                             qlv = 1
+#                         lvlist.append(qlv)
+#
+#
+#
+#
+#
+#
+#             lstwarnstatus.append(t)
+#         print(eglevel,lvlist)
+#     eglevel = max(lvlist)
+#     print(eglevel)
+
+        # print(lstwarnstatus)
+
+    # pass
+
+
+# <<<Warning Collection>>>
+def get_wc():
+    lstwarnstatus = []
+    eglevel = 0
+    aslv = 0
+    qlv = 0
+    lvlist = []
+    # <<get engine warning status>>
+    for i in range(len(lstHAAP)):
+        s = 'Engine'
+        # s += lstHAAP[i]
+        t = {}
+        t[s] = _HAAP_Status(lstHAAP[i]).get_egw()  # engine warning status
+        # t.update({'Ip':i})
+        for items in t.values():
+            for k, v in items.items():  # for key,value in dict
+                if v == 0:
+                    items.pop(k)
+        print(t)
+        print(t.values()[0])
+        if t.values() != [{}]:
+            a = t.values()[0]
+            print('aaaaa', a)
+            # print(type(a))
+            for k, v in a.items():
+                if k == 'Reboot':
+                    eglevel = 3
+                    lvlist.append(eglevel)
+                elif k == 'Mirror':
+                    eglevel = 3
+                    lvlist.append(eglevel)
+                elif k == 'ABTs':
+                    if v > abtslv3: aslv = 3
+                    elif v > abtslv2: aslv = 2
+                    else : aslv = 1
+                    lvlist.append(aslv)
+
+                else:
+                    if k == 'Qfull':
+                        if v > qflv3:
+                            qlv = 3
+                        elif v > qflv2:
+                            qlv = 2
+                        else:
+                            qlv = 1
+                        lvlist.append(qlv)
+
+            lstwarnstatus.append(t)
+        print(eglevel, lvlist)
+    eglevel = max(lvlist)
+    print(eglevel)
+
+
+def wc_tdb():
+    pass
+
+
+def check_warn():
+    get_wc()
+    pass
+
 # ################################################
 # <<<Inside Function Field>>>
 
 
 def main():
+    # get_wc()
+    # _get_SWInstance()
+    # _get_HAAPInstance()
     if len(sys.argv) == 1:
         print(strHelp)
+        # print ('aaaaaa',len(sys.argv))
+
     elif sys.argv[1] == 'ptes':
         if len(sys.argv) != 2:
             print(strHelpSingleCommand.format('ptes'))
@@ -878,6 +1345,19 @@ def main():
         else:
             _periodic_check(sys.argv[2])
 
+    elif sys.argv[1] == 'pcsw':
+        if len(sys.argv) != 3:
+            print(strPCSWHelp)
+        elif not _isIP(sys.argv[2]):
+            print('IP Format Wrong. Please Provide Correct Switch IP...')
+        else:
+            ports = []
+            for i in oddSWPort.items():
+                if sys.argv[2] == i[0]:
+                    ports = i[1]
+            # print(ports)
+            _periodic_sw_check(sys.argv[2], ports)
+
     elif sys.argv[1] == 'pcALL':
         if len(sys.argv) != 2:
             print(strHelpSingleCommand.format('pcALL'))
@@ -897,14 +1377,14 @@ def main():
         else:
             _FWUpdate(sys.argv[2], sys.argv[3])
 
-#     elif sys.argv[1] == 'healthHAAP':
-#         if len(sys.argv) != 2:
-#             print(strHelpSingleCommand.format('healthHAAP'))
-#         elif not _checkIPlst(lstHAAP):
-#             print('IP error. Please check Engine IPs defined in Conf.ini')
-#         else:
-#             for i in lstHAAP:
-#                 _EngineHealth(i)
+    #     elif sys.argv[1] == 'healthHAAP':
+    #         if len(sys.argv) != 2:
+    #             print(strHelpSingleCommand.format('healthHAAP'))
+    #         elif not _checkIPlst(lstHAAP):
+    #             print('IP error. Please check Engine IPs defined in Conf.ini')
+    #         else:
+    #             for i in lstHAAP:
+    #                 _EngineHealth(i)
 
     elif sys.argv[1] == 'sts':
         if len(sys.argv) != 2:
@@ -929,9 +1409,12 @@ def main():
 
     elif sys.argv[1] == 'wrt':
         thrd_web_rt()
-# 第一步
+
     elif sys.argv[1] == 'wdb':
         thrd_web_db()
+
+    elif sys.argv[1] == 'swc':
+        start_warn_check()
 
     elif sys.argv[1] == 'test':
 
@@ -939,20 +1422,30 @@ def main():
         # show_N_record(3)
         pass
 
+    elif sys.argv[1] == 'sancheck':
+        if len(sys.argv) != 2:
+            print(strHelpSingleCommand.format('sancheck'))
+        elif not _checkIPlst(lstHAAP):
+            print('IP error. Please check Engine IPs defined in Conf.ini')
+        else:
+            SAN_status = [{}, {}]
+
+            for i in lstHAAP:
+                _has_abts_qfull(i, SAN_status)
+            # for i in lstSW:
+                # _SWstatus(i,SAN_status)
     else:
         print(strHelp)
 
 
 if __name__ == '__main__':
-    #get_engine_from_db(),get_Switch_from_db()
-    #get_SwW()
-    get_Switch_from_db()
-  #  #get_Switch_status_list()
+    #get_engine_from_db()
+    #get_HAAP_status_list()
+    #get_all_recond()sb
+    #get_Switch_from_db()
+    #get_Switch_Total()
+    #get_HAAP_status_list()
     main()
-    # print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[1]))
-    # print (type(_SW('172.16.254.75',[1,2,3])._dicPartPortError))
-    # print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[2]))
-    # print("123123:",(_SW('172.16.254.75',[1,2,3])._dicPartPortError[3]))
-    # main()
-    # SANSW('172.16.254.75', 22, 'admin', 'passwod', [1,2,3])
-    # job_update_interval(5)
+    #email_send()
+    #job_update_interval2(10,)
+    #job_update_interval4(10,)P't't
