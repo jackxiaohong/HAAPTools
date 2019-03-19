@@ -1,4 +1,10 @@
 vpd
+vpd
 mirror
 conmgr status
+vpd
+vpd
+mirror
+conmgr status
+vpd
 vpd
