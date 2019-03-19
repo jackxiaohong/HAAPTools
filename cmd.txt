@@ -2,3 +2,5 @@ vpd
 mirror
 conmgr status
 vpd
+Engine
+Switch
